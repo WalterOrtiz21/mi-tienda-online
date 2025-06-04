@@ -121,7 +121,7 @@ export const importData = (file: File): Promise<{ products: Product[], settings:
         } else {
           reject(new Error('Formato de archivo inválido'));
         }
-      } catch (error) {
+      } catch {
         reject(new Error('Error al procesar el archivo'));
       }
     };

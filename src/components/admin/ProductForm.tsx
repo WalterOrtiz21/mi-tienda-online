@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Product } from '@/lib/types';
 
 interface ProductFormProps {
