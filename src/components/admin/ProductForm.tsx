@@ -3,21 +3,24 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { Product } from '@/lib/types';
+import ImageUpload from './ImageUpload';
 
 interface ProductFormProps {
   product?: Product;
   onSave: (product: Omit<Product, 'id'>) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export default function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
+export default function ProductForm({ product, onSave, onCancel, isLoading = false }: ProductFormProps) {
   const [formData, setFormData] = useState({
     name: product?.name || '',
     price: product?.price || 0,
     originalPrice: product?.originalPrice || 0,
     image: product?.image || '',
+    images: product?.images?.join('\n') || '', // Separar por líneas
     description: product?.description || '',
     category: product?.category || 'perfumes',
     subcategory: product?.subcategory || '',
@@ -32,6 +35,9 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
     
     const productData = {
       ...formData,
+      images: formData.images 
+        ? formData.images.split('\n').map(url => url.trim()).filter(url => url)
+        : [],
       features: formData.features.split(',').map(f => f.trim()).filter(f => f),
       tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
     };
@@ -46,6 +52,18 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
               type === 'number' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handleImageUploaded = (url: string) => {
+    setFormData(prev => ({ ...prev, image: url }));
+  };
+
+  const handleMultipleImagesUploaded = (urls: string[]) => {
+    const currentImages = formData.images 
+      ? formData.images.split('\n').filter(img => img.trim())
+      : [];
+    const newImages = [...currentImages, ...urls];
+    setFormData(prev => ({ ...prev, images: newImages.join('\n') }));
   };
 
   return (
@@ -108,26 +126,72 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             </div>
           </div>
 
-          {/* Imagen URL */}
+          {/* Imagen Principal con Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              URL de Imagen
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Imagen Principal
             </label>
-            <input
-              type="url"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="https://ejemplo.com/imagen.jpg"
-              required
+            <ImageUpload
+              onImageUploaded={handleImageUploaded}
+              currentImage={formData.image}
             />
-            {formData.image && (
-              <img 
-                src={formData.image} 
-                alt="Preview"
-                className="mt-2 w-20 h-20 object-cover rounded-lg"
+            
+            {/* Campo manual como backup */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                O pegar URL manualmente:
+              </label>
+              <input
+                type="url"
+                name="image"
+                value={formData.image}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://ejemplo.com/imagen.jpg"
               />
+            </div>
+          </div>
+
+          {/* Imágenes Adicionales con Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Imágenes Adicionales (Carrusel)
+            </label>
+            <ImageUpload
+              onMultipleImagesUploaded={handleMultipleImagesUploaded}
+              multiple={true}
+            />
+            
+            {/* Campo manual para URLs adicionales */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                URLs adicionales (una por línea):
+              </label>
+              <textarea
+                name="images"
+                value={formData.images}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://ejemplo.com/imagen2.jpg&#10;https://ejemplo.com/imagen3.jpg"
+              />
+            </div>
+
+            {/* Preview de imágenes adicionales */}
+            {formData.images && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-gray-500 mb-2">Preview del carrusel:</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.images.split('\n').filter(url => url.trim()).map((url, index) => (
+                    <img 
+                      key={index}
+                      src={url.trim()} 
+                      alt={`Preview ${index + 1}`}
+                      className="w-16 h-16 object-cover rounded border"
+                    />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
@@ -244,15 +308,24 @@ export default function ProductForm({ product, onSave, onCancel }: ProductFormPr
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              disabled={isLoading}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center space-x-2"
             >
-              {product ? 'Actualizar' : 'Crear'} Producto
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <span>{product ? 'Actualizar' : 'Crear'} Producto</span>
+              )}
             </button>
           </div>
         </form>

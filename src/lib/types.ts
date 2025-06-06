@@ -5,7 +5,8 @@ export interface Product {
   name: string;
   price: number;
   originalPrice?: number;
-  image: string;
+  image: string; // Imagen principal (backward compatibility)
+  images?: string[]; // Array de múltiples imágenes
   description: string;
   category: 'perfumes' | 'ropa';
   subcategory: string;

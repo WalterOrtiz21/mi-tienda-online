@@ -4,15 +4,23 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/lib/types';
-import { getStoredProducts, saveProducts, StoreSettings, getStoreSettings, saveStoreSettings } from '@/lib/storage';
+import { productAPI, settingsAPI } from '@/lib/supabase';
+
+export interface StoreSettings {
+  storeName: string;
+  whatsappNumber: string;
+  storeIcon?: string;
+  adminPassword?: string;
+}
 
 interface ProductsContextType {
   products: Product[];
   settings: StoreSettings;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: number, product: Omit<Product, 'id'>) => void;
-  deleteProduct: (id: number) => void;
-  updateSettings: (settings: StoreSettings) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>;
+  updateProduct: (id: number, product: Omit<Product, 'id'>) => Promise<boolean>;
+  deleteProduct: (id: number) => Promise<boolean>;
+  updateSettings: (settings: StoreSettings) => Promise<boolean>;
+  refreshProducts: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -38,57 +46,93 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar datos al inicializar
+  // Cargar datos iniciales
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedProducts = getStoredProducts();
-        const storedSettings = getStoreSettings();
-        
-        setProducts(storedProducts);
-        setSettings(storedSettings);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
+    loadInitialData();
   }, []);
 
-  // Guardar productos cuando cambien
-  useEffect(() => {
-    if (!isLoading && products.length > 0) {
-      saveProducts(products);
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Cargar productos y configuración en paralelo
+      const [productsData, settingsData] = await Promise.all([
+        productAPI.getAll(),
+        settingsAPI.get()
+      ]);
+
+      setProducts(productsData);
+      setSettings(settingsData);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [products, isLoading]);
+  };
 
-  // Guardar configuración cuando cambie
-  useEffect(() => {
-    if (!isLoading) {
-      saveStoreSettings(settings);
+  const refreshProducts = async () => {
+    try {
+      const productsData = await productAPI.getAll();
+      setProducts(productsData);
+    } catch (error) {
+      console.error('Error refreshing products:', error);
     }
-  }, [settings, isLoading]);
-
-  const addProduct = (productData: Omit<Product, 'id'>) => {
-    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    const newProduct = { ...productData, id: newId };
-    setProducts(prev => [...prev, newProduct]);
   };
 
-  const updateProduct = (id: number, productData: Omit<Product, 'id'>) => {
-    setProducts(prev => prev.map(p => 
-      p.id === id ? { ...productData, id } : p
-    ));
+  const addProduct = async (productData: Omit<Product, 'id'>): Promise<boolean> => {
+    try {
+      const newProduct = await productAPI.create(productData);
+      if (newProduct) {
+        setProducts(prev => [newProduct, ...prev]);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error adding product:', error);
+      return false;
+    }
   };
 
-  const deleteProduct = (id: number) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+  const updateProduct = async (id: number, productData: Omit<Product, 'id'>): Promise<boolean> => {
+    try {
+      const updatedProduct = await productAPI.update(id, productData);
+      if (updatedProduct) {
+        setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      return false;
+    }
   };
 
-  const updateSettings = (newSettings: StoreSettings) => {
-    setSettings(newSettings);
+  const deleteProduct = async (id: number): Promise<boolean> => {
+    try {
+      const success = await productAPI.delete(id);
+      if (success) {
+        setProducts(prev => prev.filter(p => p.id !== id));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      return false;
+    }
+  };
+
+  const updateSettings = async (newSettings: StoreSettings): Promise<boolean> => {
+    try {
+      const success = await settingsAPI.update(newSettings);
+      if (success) {
+        setSettings(newSettings);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      return false;
+    }
   };
 
   const value: ProductsContextType = {
@@ -98,6 +142,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
     updateProduct,
     deleteProduct,
     updateSettings,
+    refreshProducts,
     isLoading
   };
 

@@ -83,15 +83,15 @@ export default function ProductCard({
           </div>
           <button
             onClick={() => onViewDetails(product)}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+            className={`px-3 py-2 text-sm rounded-md transition-colors flex items-center space-x-1 ${
               product.inStock 
-                ? 'bg-black text-white hover:bg-gray-800' 
+                ? 'bg-gray-900 text-white hover:bg-gray-800' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             disabled={!product.inStock}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Ver detalles</span>
+            <span>Ver</span>
           </button>
         </div>
       </div>

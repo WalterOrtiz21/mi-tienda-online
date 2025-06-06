@@ -12,6 +12,7 @@ export default function AdminSettings() {
   const [formData, setFormData] = useState({
     storeName: settings.storeName,
     whatsappNumber: settings.whatsappNumber,
+    storeIcon: settings.storeIcon || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -35,11 +36,12 @@ export default function AdminSettings() {
       updateSettings({
         ...settings,
         storeName: formData.storeName,
-        whatsappNumber: formData.whatsappNumber
+        whatsappNumber: formData.whatsappNumber,
+        storeIcon: formData.storeIcon
       });
 
       setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
-    } catch {
+    } catch (error) {
       setMessage({ type: 'error', text: 'Error al guardar la configuración' });
     } finally {
       setIsSaving(false);
@@ -142,6 +144,30 @@ export default function AdminSettings() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Icono de la Tienda (URL)
+          </label>
+          <input
+            type="url"
+            name="storeIcon"
+            value={formData.storeIcon}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="https://ejemplo.com/logo.png"
+          />
+          {formData.storeIcon && (
+            <div className="mt-2 flex items-center space-x-2">
+              <img 
+                src={formData.storeIcon} 
+                alt="Preview logo"
+                className="w-8 h-8 object-contain border rounded"
+              />
+              <span className="text-sm text-gray-500">Preview del icono</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4">
