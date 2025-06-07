@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader } from 'lucide-react';
+import { Upload, Image as Loader } from 'lucide-react';
 import { uploadImage, uploadMultipleImages } from '@/lib/imageUpload';
 
 interface ImageUploadProps {

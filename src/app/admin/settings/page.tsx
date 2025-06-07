@@ -41,7 +41,7 @@ export default function AdminSettings() {
       });
 
       setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Error al guardar la configuración' });
     } finally {
       setIsSaving(false);
