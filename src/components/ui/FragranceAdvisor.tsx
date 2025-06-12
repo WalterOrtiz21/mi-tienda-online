@@ -18,6 +18,7 @@ const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 export default function FragranceAdvisor({ products, onProductSelect, onClose }: FragranceAdvisorProps) {
   const [userPrompt, setUserPrompt] = useState('');
+  const [selectedGender, setSelectedGender] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<{
     product: Product;
@@ -96,18 +97,38 @@ export default function FragranceAdvisor({ products, onProductSelect, onClose }:
       return;
     }
 
+    if (!selectedGender) {
+      setError('Por favor, selecciona para quién es el perfume.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setRecommendation(null);
 
     try {
-      const productListForPrompt = products.map(p => 
-        `ID: ${p.id}, Nombre: ${p.name}, Descripción: ${p.description}, Categoría: ${p.category}, Tags: ${p.tags.join(', ')}`
+      // Filtrar productos por género seleccionado
+      const filteredProducts = products.filter(p => {
+        if (p.category !== 'perfumes') return false;
+        if (selectedGender === 'indiferente') return true;
+        if (!p.gender) return true; // Productos sin género definido
+        return p.gender === selectedGender || p.gender === 'unisex';
+      });
+
+      if (filteredProducts.length === 0) {
+        setError('No hay productos disponibles para el género seleccionado.');
+        return;
+      }
+
+      const productListForPrompt = filteredProducts.map(p => 
+        `ID: ${p.id}, Nombre: ${p.name}, Descripción: ${p.description}, Género: ${p.gender || 'unisex'}, Subcategoría: ${p.subcategory}, Tags: ${p.tags.join(', ')}`
       ).join('\n');
 
-      const prompt = `Eres un experto en fragancias. Un cliente busca algo específico: "${userPrompt}". 
+      const genderText = selectedGender === 'indiferente' ? 'cualquier género' : `género ${selectedGender}`;
 
-Basado en la siguiente lista de perfumes, ¿cuál le recomendarías? 
+      const prompt = `Eres un experto en fragancias. Un cliente busca algo específico: "${userPrompt}" para ${genderText}. 
+
+Basado en la siguiente lista de perfumes disponibles, ¿cuál le recomendarías? 
 
 ${productListForPrompt}
 
@@ -124,7 +145,7 @@ ID: [número]
       const recommendedId = idLine ? parseInt(idLine.replace('ID:', '').trim(), 10) : null;
       const explanation = lines.slice(1).join('\n').trim();
 
-      const recommendedProduct = products.find(p => p.id === recommendedId);
+      const recommendedProduct = filteredProducts.find(p => p.id === recommendedId);
 
       if (recommendedProduct) {
         setRecommendation({
@@ -144,6 +165,7 @@ ID: [número]
 
   const resetAdvisor = () => {
     setUserPrompt('');
+    setSelectedGender('');
     setRecommendation(null);
     setError('');
   };
@@ -171,16 +193,45 @@ ID: [número]
 
           {!recommendation ? (
             <div className="space-y-6">
+              {/* Selector de Género */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  ¿Para quién es el perfume? *
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: 'mujer', label: '👩 Mujer', icon: '♀️' },
+                    { value: 'hombre', label: '👨 Hombre', icon: '♂️' },
+                    { value: 'unisex', label: '👥 Unisex', icon: '⚤' },
+                    { value: 'indiferente', label: '🤷 Indiferente', icon: '?' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedGender(option.value)}
+                      className={`p-3 text-center rounded-lg border-2 transition-all ${
+                        selectedGender === option.value
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{option.icon}</div>
+                      <div className="text-sm font-medium">{option.label.replace(/👩|👨|👥|🤷/, '').trim()}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ¿Qué tipo de fragancia buscas?
+                  Describe qué tipo de fragancia buscas *
                 </label>
                 <textarea
                   value={userPrompt}
                   onChange={(e) => setUserPrompt(e.target.value)}
                   className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   rows={4}
-                  placeholder="Ej: 'Busco un aroma para una cena romántica, que sea elegante y sensual...' o 'Necesito algo fresco para usar en el trabajo todos los días...'"
+                  placeholder="Ej: 'Para una cena romántica, algo elegante y sensual...' o 'Necesito algo fresco para usar en el trabajo todos los días...'"
                 />
               </div>
 
@@ -192,7 +243,7 @@ ID: [número]
 
               <button
                 onClick={getRecommendation}
-                disabled={isLoading || !userPrompt.trim()}
+                disabled={isLoading || !userPrompt.trim() || !selectedGender}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-6 rounded-lg text-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center space-x-2"
               >
                 {isLoading ? (
@@ -210,7 +261,7 @@ ID: [número]
 
               <div className="text-xs text-gray-500 text-center">
                 <p>💡 <strong>Ejemplos de búsqueda:</strong></p>
-                <p>"Para una boda en la playa" • "Algo masculino y sofisticado" • "Fragancia dulce para el día"</p>
+                <p>"Para una boda en la playa" • "Algo sofisticado para la oficina" • "Fragancia dulce y juvenil"</p>
               </div>
             </div>
           ) : (

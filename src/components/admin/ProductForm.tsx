@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { Product } from '@/lib/types';
 import ImageUpload from './ImageUpload';
 
@@ -24,6 +24,7 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
     description: product?.description || '',
     category: product?.category || 'perfumes',
     subcategory: product?.subcategory || '',
+    gender: product?.gender || 'unisex', // Nuevo campo
     rating: product?.rating || 4.0,
     inStock: product?.inStock ?? true,
     features: product?.features?.join(', ') || '',
@@ -210,8 +211,8 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             />
           </div>
 
-          {/* Categoría y Subcategoría */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Categoría, Subcategoría y Género */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Categoría
@@ -236,10 +237,27 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
                 value={formData.subcategory}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="ej: mujer, vestidos, etc."
+                placeholder="ej: cítrico, oriental, vintage, etc."
                 required
               />
             </div>
+            {formData.category === 'perfumes' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Género
+                </label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="unisex">Unisex</option>
+                  <option value="mujer">Para Mujer</option>
+                  <option value="hombre">Para Hombre</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Rating y Stock */}

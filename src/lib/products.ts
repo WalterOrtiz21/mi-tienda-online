@@ -106,13 +106,35 @@ export const getCategories = (products: Product[]): Category[] => [
 export const filterProducts = (
   products: Product[], 
   category: string, 
-  searchTerm: string
+  searchTerm: string,
+  gender?: string
 ): Product[] => {
   return products.filter(product => {
+    // Filtro de categoría
     const matchesCategory = category === 'all' || product.category === category;
+    
+    // Filtro de búsqueda
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    
+    // Filtro de género (solo aplicar si se especifica un género y el producto es perfume)
+    let matchesGender = true;
+    if (gender && gender !== 'all') {
+      if (product.category === 'perfumes') {
+        if (gender === 'unisex') {
+          // Para unisex: productos marcados como unisex O sin género definido
+          matchesGender = product.gender === 'unisex' || !product.gender;
+        } else {
+          // Para hombre/mujer: coincidencia exacta
+          matchesGender = product.gender === gender;
+        }
+      } else {
+        // Si no es perfume, no aplicar filtro de género
+        matchesGender = true;
+      }
+    }
+    
+    return matchesCategory && matchesSearch && matchesGender;
   });
 };
 

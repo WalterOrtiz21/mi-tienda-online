@@ -10,6 +10,7 @@ export interface Product {
   description: string;
   category: 'perfumes' | 'ropa';
   subcategory: string;
+  gender?: 'hombre' | 'mujer' | 'unisex'; // Nuevo campo para perfumes
   rating: number;
   inStock: boolean;
   features: string[];
