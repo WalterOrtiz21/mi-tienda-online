@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Save, Key, Store, Phone, Download, Upload, RotateCcw } from 'lucide-react';
 import { useProducts } from '@/contexts/ProductsContext';
 import { exportData, resetStorage } from '@/lib/storage';
+import StoreIconUpload from '@/components/admin/StoreIconUpload';
 
 export default function AdminSettings() {
   const { settings, updateSettings } = useProducts();
@@ -27,21 +28,29 @@ export default function AdminSettings() {
     }));
   };
 
+  const handleIconUploaded = (url: string) => {
+    setFormData(prev => ({ ...prev, storeIcon: url }));
+  };
+
   const handleSaveSettings = async () => {
     setIsSaving(true);
     setMessage(null);
 
     try {
       // Actualizar configuración de la tienda
-      updateSettings({
+      const success = await updateSettings({
         ...settings,
         storeName: formData.storeName,
         whatsappNumber: formData.whatsappNumber,
         storeIcon: formData.storeIcon
       });
 
-      setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
-    } catch {
+      if (success) {
+        setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
+      } else {
+        setMessage({ type: 'error', text: 'Error al guardar la configuración' });
+      }
+    } catch (error) {
       setMessage({ type: 'error', text: 'Error al guardar la configuración' });
     } finally {
       setIsSaving(false);
@@ -147,27 +156,10 @@ export default function AdminSettings() {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Icono de la Tienda (URL)
-          </label>
-          <input
-            type="url"
-            name="storeIcon"
-            value={formData.storeIcon}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="https://ejemplo.com/logo.png"
+          <StoreIconUpload
+            onIconUploaded={handleIconUploaded}
+            currentIcon={formData.storeIcon}
           />
-          {formData.storeIcon && (
-            <div className="mt-2 flex items-center space-x-2">
-              <img 
-                src={formData.storeIcon} 
-                alt="Preview logo"
-                className="w-8 h-8 object-contain border rounded"
-              />
-              <span className="text-sm text-gray-500">Preview del icono</span>
-            </div>
-          )}
         </div>
 
         <div className="mt-4">
@@ -287,11 +279,11 @@ export default function AdminSettings() {
           </div>
           <div>
             <span className="font-medium text-gray-700">Almacenamiento:</span>
-            <span className="ml-2 text-gray-600">LocalStorage</span>
+            <span className="ml-2 text-gray-600">Supabase</span>
           </div>
           <div>
-            <span className="font-medium text-gray-700">Productos:</span>
-            <span className="ml-2 text-gray-600">{/* products.length */} productos guardados</span>
+            <span className="font-medium text-gray-700">Storage:</span>
+            <span className="ml-2 text-gray-600">Supabase Storage</span>
           </div>
           <div>
             <span className="font-medium text-gray-700">Última actualización:</span>

@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Search,RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Download, Upload, RefreshCw } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { formatPrice } from '@/lib/products';
 import { useProducts } from '@/contexts/ProductsContext';
@@ -117,8 +117,8 @@ export default function AdminProducts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
-          <p className="text-gray-600">Administra tu inventario - Base de datos compartida</p>
+          <h1 className="text-3xl font-bold text-black">Gestión de Productos</h1>
+          <p className="text-gray-700">Administra tu inventario - Base de datos compartida</p>
         </div>
         <div className="flex items-center space-x-3">
           <button

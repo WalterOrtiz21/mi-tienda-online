@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, SetStateAction } from 'react';
 import { Product, ViewMode } from '@/lib/types';
 import { getCategories, filterProducts } from '@/lib/products';
 import { useProducts } from '@/contexts/ProductsContext';
@@ -10,7 +10,9 @@ import Header from '@/components/ui/Header';
 import Sidebar from '@/components/ui/Sidebar';
 import ProductCard from '@/components/ui/ProductCard';
 import ProductModal from '@/components/ui/ProductModal';
+import FragranceAdvisor from '@/components/ui/FragranceAdvisor';
 import Footer from '@/components/ui/Footer';
+import { Sparkles } from 'lucide-react';
 
 export default function Home() {
   const { products, settings, isLoading } = useProducts();
@@ -19,6 +21,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showAdvisor, setShowAdvisor] = useState(false);
 
   const categories = getCategories(products);
   const filteredProducts = useMemo(() => 
@@ -50,9 +53,27 @@ export default function Home() {
       <Header 
         storeName={settings.storeName}
         whatsappNumber={settings.whatsappNumber}
+        storeIcon={settings.storeIcon}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section con Asesor IA */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Descubre tu Fragancia Perfecta
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">
+            Explora nuestra colección exclusiva de perfumes y encuentra el aroma que define tu personalidad
+          </p>
+          <button
+            onClick={() => setShowAdvisor(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 mx-auto"
+          >
+            <Sparkles className="w-6 h-6" />
+            <span>✨ Encuentra tu Aroma Ideal con IA</span>
+          </button>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           <Sidebar
             categories={categories}
@@ -103,6 +124,17 @@ export default function Home() {
         product={selectedProduct} 
         onClose={() => setSelectedProduct(null)} 
       />
+
+      {showAdvisor && (
+        <FragranceAdvisor
+          products={products}
+          onProductSelect={(product: SetStateAction<Product | null>) => {
+            setSelectedProduct(product);
+            setShowAdvisor(false);
+          }}
+          onClose={() => setShowAdvisor(false)}
+        />
+      )}
 
       <Footer 
         storeName={settings.storeName}
