@@ -1,0 +1,17 @@
+# Dependencias
+node_modules
+
+# Archivos de build local
+.next
+out
+
+# Archivos de entorno local
+#.env.local
+
+# Archivos de Docker
+Dockerfile
+.dockerignore
+
+# Otros
+npm-debug.log
+README.md

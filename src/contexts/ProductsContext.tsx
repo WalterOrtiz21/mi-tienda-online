@@ -4,7 +4,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/lib/types';
-import { productAPI, settingsAPI } from '@/lib/supabase';
 
 export interface StoreSettings {
   storeName: string;
@@ -56,13 +55,20 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
       setIsLoading(true);
       
       // Cargar productos y configuración en paralelo
-      const [productsData, settingsData] = await Promise.all([
-        productAPI.getAll(),
-        settingsAPI.get()
+      const [productsResponse, settingsResponse] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/settings')
       ]);
 
-      setProducts(productsData);
-      setSettings(settingsData);
+      if (productsResponse.ok) {
+        const productsData = await productsResponse.json();
+        setProducts(productsData);
+      }
+
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        setSettings(settingsData);
+      }
     } catch (error) {
       console.error('Error loading initial data:', error);
     } finally {
@@ -72,8 +78,11 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
 
   const refreshProducts = async () => {
     try {
-      const productsData = await productAPI.getAll();
-      setProducts(productsData);
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const productsData = await response.json();
+        setProducts(productsData);
+      }
     } catch (error) {
       console.error('Error refreshing products:', error);
     }
@@ -81,8 +90,16 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
 
   const addProduct = async (productData: Omit<Product, 'id'>): Promise<boolean> => {
     try {
-      const newProduct = await productAPI.create(productData);
-      if (newProduct) {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+      });
+
+      if (response.ok) {
+        const newProduct = await response.json();
         setProducts(prev => [newProduct, ...prev]);
         return true;
       }
@@ -95,8 +112,16 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
 
   const updateProduct = async (id: number, productData: Omit<Product, 'id'>): Promise<boolean> => {
     try {
-      const updatedProduct = await productAPI.update(id, productData);
-      if (updatedProduct) {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+      });
+
+      if (response.ok) {
+        const updatedProduct = await response.json();
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
         return true;
       }
@@ -109,8 +134,11 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
 
   const deleteProduct = async (id: number): Promise<boolean> => {
     try {
-      const success = await productAPI.delete(id);
-      if (success) {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
         setProducts(prev => prev.filter(p => p.id !== id));
         return true;
       }
@@ -123,8 +151,15 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
 
   const updateSettings = async (newSettings: StoreSettings): Promise<boolean> => {
     try {
-      const success = await settingsAPI.update(newSettings);
-      if (success) {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newSettings),
+      });
+
+      if (response.ok) {
         setSettings(newSettings);
         return true;
       }

@@ -1,0 +1,65 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # Servicio de la Base de Datos MySQL
+  db:
+    image: mysql:8.0
+    container_name: annyamodas-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1322655cf8ca7aaf2d57
+      MYSQL_DATABASE: annyamodas_db
+      MYSQL_USER: annyamodas_user
+      MYSQL_PASSWORD: 5eba7
+    ports:
+      # Exponemos el puerto de MySQL solo a nuestra máquina local para seguridad
+      - '127.0.0.1:3306:3306'
+    volumes:
+      # Persiste los datos de la base de datos
+      - mysql-data:/var/lib/mysql
+      # Script de inicialización
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - annyamodas-network
+    # Verificación de salud de la base de datos
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Servicio de la Aplicación Next.js
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: annyamodas-app
+    restart: always
+    ports:
+      - '8080:3000'
+    environment:
+      NODE_ENV: production
+      DATABASE_HOST: db
+      DATABASE_USER: annyamodas_user
+      DATABASE_PASSWORD: 5eba7
+      DATABASE_NAME: annyamodas_db
+      JWT_SECRET: e4e4f05c8da5cf473
+      # Variables para subida de imágenes (si usas un servicio local)
+      UPLOAD_DIR: /app/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy # Espera a que MySQL esté ready
+    networks:
+      - annyamodas-network
+    # Volumen para uploads (opcional, si quieres almacenar imágenes localmente)
+    volumes:
+      - ./public/uploads:/app/public/uploads
+
+# Definición de volúmenes y redes
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  annyamodas-network:
+    driver: bridge
