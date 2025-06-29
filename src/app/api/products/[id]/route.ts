@@ -1,73 +1,80 @@
-// src/app/api/products/[id]/route.ts
+// src/app/api/products/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { productAPI } from '@/lib/database';
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
-// PUT - Actualizar producto
-export async function PUT(request: NextRequest, context: RouteParams) {
+// GET - Obtener todos los productos
+export async function GET() {
   try {
-    const { id: idParam } = await context.params;
-    const id = parseInt(idParam);
-    const productData = await request.json();
-
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid product ID' },
-        { status: 400 }
-      );
-    }
-
-    const updatedProduct = await productAPI.update(id, productData);
+    const products = await productAPI.getAll();
     
-    if (updatedProduct) {
-      return NextResponse.json(updatedProduct);
-    } else {
-      return NextResponse.json(
-        { error: 'Product not found or failed to update' },
-        { status: 404 }
-      );
-    }
+    return NextResponse.json(products, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+    });
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('Error fetching products:', error);
     return NextResponse.json(
-      { error: 'Failed to update product' },
-      { status: 500 }
+      { error: 'Failed to fetch products' },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      }
     );
   }
 }
 
-// DELETE - Eliminar producto
-export async function DELETE(request: NextRequest, context: RouteParams) {
+// POST - Crear nuevo producto
+export async function POST(request: NextRequest) {
   try {
-    const { id: idParam } = await context.params;
-    const id = parseInt(idParam);
-
-    if (isNaN(id)) {
+    const productData = await request.json();
+    
+    // Validar datos requeridos
+    if (!productData.name || !productData.price || !productData.description) {
       return NextResponse.json(
-        { error: 'Invalid product ID' },
-        { status: 400 }
+        { error: 'Missing required fields: name, price, description' },
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+        }
       );
     }
 
-    const success = await productAPI.delete(id);
+    const newProduct = await productAPI.create(productData);
     
-    if (success) {
-      return NextResponse.json({ message: 'Product deleted successfully' });
+    if (newProduct) {
+      return NextResponse.json(newProduct, { 
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
     } else {
       return NextResponse.json(
-        { error: 'Product not found or failed to delete' },
-        { status: 404 }
+        { error: 'Failed to create product' },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+        }
       );
     }
   } catch (error) {
-    console.error('Error deleting product:', error);
+    console.error('Error creating product:', error);
     return NextResponse.json(
-      { error: 'Failed to delete product' },
-      { status: 500 }
+      { error: 'Failed to create product' },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      }
     );
   }
 }

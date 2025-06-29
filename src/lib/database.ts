@@ -3,7 +3,7 @@
 import mysql from 'mysql2/promise';
 import { Product } from './types';
 
-// Configuración de la conexión
+// Configuración de la conexión con UTF-8 explícito
 const dbConfig = {
   host: process.env.DATABASE_HOST || 'localhost',
   user: process.env.DATABASE_USER || 'annyamodas_user',
@@ -12,7 +12,15 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  charset: 'utf8mb4'
+  charset: 'utf8mb4',
+  collation: 'utf8mb4_unicode_ci',
+  // Configuraciones adicionales para UTF-8
+  typeCast: function (field: any, next: any) {
+    if (field.type === 'VAR_STRING' || field.type === 'STRING') {
+      return field.string();
+    }
+    return next();
+  }
 };
 
 // Pool de conexiones para mejor rendimiento
