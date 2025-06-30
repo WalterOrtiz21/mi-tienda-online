@@ -19,7 +19,8 @@ export default function AdminProducts() {
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -118,7 +119,7 @@ export default function AdminProducts() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-black">Gestión de Productos</h1>
-          <p className="text-gray-700">Administra tu inventario - Base de datos compartida</p>
+          <p className="text-gray-700">Administra tu inventario de prendas y calzados</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -147,7 +148,7 @@ export default function AdminProducts() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Buscar productos por nombre o categoría..."
+            placeholder="Buscar productos por nombre, categoría o marca..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -155,7 +156,7 @@ export default function AdminProducts() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats actualizadas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-2xl font-bold text-blue-600">{products.length}</div>
@@ -168,16 +169,16 @@ export default function AdminProducts() {
           <div className="text-sm text-gray-600">En Stock</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-red-600">
-            {products.filter(p => !p.inStock).length}
+          <div className="text-2xl font-bold text-purple-600">
+            {products.filter(p => p.category === 'prendas').length}
           </div>
-          <div className="text-sm text-gray-600">Agotados</div>
+          <div className="text-sm text-gray-600">👕 Prendas</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-purple-600">
-            {products.filter(p => p.category === 'perfumes').length}
+          <div className="text-2xl font-bold text-orange-600">
+            {products.filter(p => p.category === 'calzados').length}
           </div>
-          <div className="text-sm text-gray-600">Perfumes</div>
+          <div className="text-sm text-gray-600">👟 Calzados</div>
         </div>
       </div>
 
@@ -206,10 +207,10 @@ export default function AdminProducts() {
                   Precio
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
+                  Talles
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
+                  Stock
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
@@ -230,15 +231,19 @@ export default function AdminProducts() {
                         <div className="text-sm font-medium text-gray-900">
                           {product.name}
                         </div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">
-                          {product.description}
+                        <div className="text-sm text-gray-500">
+                          {product.brand} • {product.gender}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                      {product.category}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      product.category === 'prendas' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {product.category === 'prendas' ? '👕 Prendas' : '👟 Calzados'}
                     </span>
                     <div className="text-xs text-gray-500 mt-1">
                       {product.subcategory}
@@ -255,6 +260,14 @@ export default function AdminProducts() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-xs text-gray-600">
+                      {product.sizes && product.sizes.length > 0 
+                        ? product.sizes.slice(0, 3).join(', ') + (product.sizes.length > 3 ? '...' : '')
+                        : 'Sin talles'
+                      }
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       product.inStock 
                         ? 'bg-green-100 text-green-800' 
@@ -262,9 +275,6 @@ export default function AdminProducts() {
                     }`}>
                       {product.inStock ? 'En Stock' : 'Agotado'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ⭐ {product.rating}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">

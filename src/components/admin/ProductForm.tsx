@@ -22,9 +22,13 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
     image: product?.image || '',
     images: product?.images?.join('\n') || '', // Separar por líneas
     description: product?.description || '',
-    category: product?.category || 'perfumes',
+    category: product?.category || 'prendas',
     subcategory: product?.subcategory || '',
-    gender: product?.gender || 'unisex', // Nuevo campo
+    gender: product?.gender || 'unisex',
+    sizes: product?.sizes?.join(', ') || '', // Nuevo: talles separados por comas
+    colors: product?.colors?.join(', ') || '', // Nuevo: colores separados por comas
+    material: product?.material || '', // Nuevo: material
+    brand: product?.brand || '', // Nuevo: marca
     rating: product?.rating || 4.0,
     inStock: product?.inStock ?? true,
     features: product?.features?.join(', ') || '',
@@ -38,6 +42,12 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
       ...formData,
       images: formData.images 
         ? formData.images.split('\n').map(url => url.trim()).filter(url => url)
+        : [],
+      sizes: formData.sizes 
+        ? formData.sizes.split(',').map(s => s.trim()).filter(s => s)
+        : [],
+      colors: formData.colors 
+        ? formData.colors.split(',').map(c => c.trim()).filter(c => c)
         : [],
       features: formData.features.split(',').map(f => f.trim()).filter(f => f),
       tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
@@ -69,7 +79,7 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">
             {product ? 'Editar Producto' : 'Nuevo Producto'}
@@ -82,27 +92,93 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Nombre */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre del Producto
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Información Básica */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Nombre */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del Producto *
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            {/* Categoría y Subcategoría */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoría *
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="prendas">👕 Prendas</option>
+                <option value="calzados">👟 Calzados</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subcategoría *
+              </label>
+              <input
+                type="text"
+                name="subcategory"
+                value={formData.subcategory}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={formData.category === 'prendas' ? 'ej: remeras, jeans, vestidos' : 'ej: zapatillas, botas, sandalias'}
+                required
+              />
+            </div>
+
+            {/* Género */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Género *
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="unisex">👥 Unisex</option>
+                <option value="mujer">👩 Para Mujer</option>
+                <option value="hombre">👨 Para Hombre</option>
+              </select>
+            </div>
+
+            {/* Marca */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Marca
+              </label>
+              <input
+                type="text"
+                name="brand"
+                value={formData.brand}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="ej: Nike, Zara, H&M"
+              />
+            </div>
           </div>
 
           {/* Precios */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio (₲)
+                Precio (₲) *
               </label>
               <input
                 type="number"
@@ -127,10 +203,61 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             </div>
           </div>
 
+          {/* Talles y Colores */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Talles Disponibles *
+              </label>
+              <input
+                type="text"
+                name="sizes"
+                value={formData.sizes}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={formData.category === 'prendas' ? 'ej: S, M, L, XL' : 'ej: 38, 39, 40, 41, 42'}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Separar con comas. Para {formData.category === 'prendas' ? 'prendas: XS, S, M, L, XL' : 'calzados: 35, 36, 37, 38, etc.'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Colores Disponibles
+              </label>
+              <input
+                type="text"
+                name="colors"
+                value={formData.colors}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="ej: Negro, Blanco, Azul, Rojo"
+              />
+              <p className="text-xs text-gray-500 mt-1">Separar con comas</p>
+            </div>
+          </div>
+
+          {/* Material */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Material
+            </label>
+            <input
+              type="text"
+              name="material"
+              value={formData.material}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={formData.category === 'prendas' ? 'ej: 100% Algodón, Poliéster, Denim' : 'ej: Cuero genuino, Sintético, Lona'}
+            />
+          </div>
+
           {/* Imagen Principal con Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Imagen Principal
+              Imagen Principal *
             </label>
             <ImageUpload
               onImageUploaded={handleImageUploaded}
@@ -153,7 +280,7 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             </div>
           </div>
 
-          {/* Imágenes Adicionales con Upload */}
+          {/* Imágenes Adicionales */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imágenes Adicionales (Carrusel)
@@ -163,7 +290,6 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
               multiple={true}
             />
             
-            {/* Campo manual para URLs adicionales */}
             <div className="mt-3">
               <label className="block text-xs font-medium text-gray-500 mb-1">
                 URLs adicionales (una por línea):
@@ -177,29 +303,12 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
                 placeholder="https://ejemplo.com/imagen2.jpg&#10;https://ejemplo.com/imagen3.jpg"
               />
             </div>
-
-            {/* Preview de imágenes adicionales */}
-            {formData.images && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-2">Preview del carrusel:</p>
-                <div className="flex flex-wrap gap-2">
-                  {formData.images.split('\n').filter(url => url.trim()).map((url, index) => (
-                    <img 
-                      key={index}
-                      src={url.trim()} 
-                      alt={`Preview ${index + 1}`}
-                      className="w-16 h-16 object-cover rounded border"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción
+              Descripción *
             </label>
             <textarea
               name="description"
@@ -211,57 +320,8 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             />
           </div>
 
-          {/* Categoría, Subcategoría y Género */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="perfumes">Perfumes</option>
-                <option value="ropa">Ropa</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subcategoría
-              </label>
-              <input
-                type="text"
-                name="subcategory"
-                value={formData.subcategory}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="ej: cítrico, oriental, vintage, etc."
-                required
-              />
-            </div>
-            {formData.category === 'perfumes' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Género
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="unisex">Unisex</option>
-                  <option value="mujer">Para Mujer</option>
-                  <option value="hombre">Para Hombre</option>
-                </select>
-              </div>
-            )}
-          </div>
-
           {/* Rating y Stock */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Rating (1-5)
@@ -291,34 +351,35 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             </div>
           </div>
 
-          {/* Características */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Características (separadas por comas)
-            </label>
-            <input
-              type="text"
-              name="features"
-              value={formData.features}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="100ml, Larga duración, Original"
-            />
-          </div>
+          {/* Características y Tags */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Características (separadas por comas)
+              </label>
+              <input
+                type="text"
+                name="features"
+                value={formData.features}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="ej: Cómodo, Resistente, Lavable"
+              />
+            </div>
 
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags (separados por comas)
-            </label>
-            <input
-              type="text"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="floral, clásico, elegante"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tags (separados por comas)
+              </label>
+              <input
+                type="text"
+                name="tags"
+                value={formData.tags}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="ej: casual, elegante, deportivo"
+              />
+            </div>
           </div>
 
           {/* Buttons */}

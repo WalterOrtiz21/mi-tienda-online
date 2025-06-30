@@ -26,14 +26,19 @@ export default function AdminDashboard() {
   const totalValue = products.reduce((sum, p) => sum + p.price, 0);
   const averagePrice = totalProducts > 0 ? totalValue / totalProducts : 0;
 
-  // Productos por categoría
-  const perfumesCount = products.filter(p => p.category === 'perfumes').length;
-  const ropaCount = products.filter(p => p.category === 'ropa').length;
+  // Productos por categoría actualizada
+  const prendasCount = products.filter(p => p.category === 'prendas').length;
+  const calzadosCount = products.filter(p => p.category === 'calzados').length;
 
   // Productos con descuento
   const productsWithDiscount = products.filter(p => 
     p.originalPrice && p.originalPrice > p.price
   ).length;
+
+  // Productos por género
+  const mujerCount = products.filter(p => p.gender === 'mujer').length;
+  const hombreCount = products.filter(p => p.gender === 'hombre').length;
+  const unisexCount = products.filter(p => p.gender === 'unisex').length;
 
   const stats = [
     {
@@ -41,7 +46,7 @@ export default function AdminDashboard() {
       value: totalProducts,
       icon: Package,
       color: 'bg-blue-500',
-      description: `${perfumesCount} perfumes, ${ropaCount} ropa`
+      description: `${prendasCount} prendas, ${calzadosCount} calzados`
     },
     {
       name: 'En Stock',
@@ -123,7 +128,7 @@ export default function AdminDashboard() {
                     <div className="ml-4">
                       <h3 className="text-sm font-medium text-gray-900">{product.name}</h3>
                       <p className="text-sm text-gray-500">
-                        {product.category} • ID: {product.id}
+                        {product.category} • {product.brand} • ID: {product.id}
                       </p>
                     </div>
                   </div>
@@ -172,7 +177,7 @@ export default function AdminDashboard() {
                     />
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-gray-900">{product.name}</h3>
-                      <p className="text-sm text-gray-500">⭐ {product.rating}</p>
+                      <p className="text-sm text-gray-500">⭐ {product.rating} • {product.category}</p>
                     </div>
                   </div>
                   <span className="text-sm font-medium text-gray-900">
@@ -197,37 +202,67 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-blue-500 rounded mr-3"></div>
-                <span className="text-sm font-medium">Perfumes</span>
+                <span className="text-sm font-medium">👕 Prendas</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{perfumesCount}</span>
+                <span className="text-sm text-gray-500">{prendasCount}</span>
                 <div className="w-32 bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-blue-500 h-2 rounded-full" 
-                    style={{ width: `${(perfumesCount / totalProducts) * 100}%` }}
+                    style={{ width: `${(prendasCount / totalProducts) * 100}%` }}
                   ></div>
                 </div>
                 <span className="text-sm text-gray-500 w-12 text-right">
-                  {Math.round((perfumesCount / totalProducts) * 100)}%
+                  {Math.round((prendasCount / totalProducts) * 100)}%
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-4 h-4 bg-pink-500 rounded mr-3"></div>
-                <span className="text-sm font-medium">Ropa</span>
+                <div className="w-4 h-4 bg-green-500 rounded mr-3"></div>
+                <span className="text-sm font-medium">👟 Calzados</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{ropaCount}</span>
+                <span className="text-sm text-gray-500">{calzadosCount}</span>
                 <div className="w-32 bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-pink-500 h-2 rounded-full" 
-                    style={{ width: `${(ropaCount / totalProducts) * 100}%` }}
+                    className="bg-green-500 h-2 rounded-full" 
+                    style={{ width: `${(calzadosCount / totalProducts) * 100}%` }}
                   ></div>
                 </div>
                 <span className="text-sm text-gray-500 w-12 text-right">
-                  {Math.round((ropaCount / totalProducts) * 100)}%
+                  {Math.round((calzadosCount / totalProducts) * 100)}%
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gender Distribution */}
+      {totalProducts > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Género</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-pink-600">{mujerCount}</div>
+              <div className="text-sm text-gray-600">👩 Para Mujer</div>
+              <div className="text-xs text-gray-500">
+                {Math.round((mujerCount / totalProducts) * 100)}%
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{hombreCount}</div>
+              <div className="text-sm text-gray-600">👨 Para Hombre</div>
+              <div className="text-xs text-gray-500">
+                {Math.round((hombreCount / totalProducts) * 100)}%
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{unisexCount}</div>
+              <div className="text-sm text-gray-600">👥 Unisex</div>
+              <div className="text-xs text-gray-500">
+                {Math.round((unisexCount / totalProducts) * 100)}%
               </div>
             </div>
           </div>
