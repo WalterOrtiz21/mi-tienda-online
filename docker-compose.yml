@@ -13,10 +13,11 @@ services:
       --init-connect='SET NAMES utf8mb4;'
       --innodb-flush-log-at-trx-commit=0
     environment:
-      MYSQL_ROOT_PASSWORD: 1322655cf8ca7aaf2d57e428f4a07a366ce0384882d73f60d990832d05860967
-      MYSQL_DATABASE: annyamodas_db
-      MYSQL_USER: annyamodas_user
-      MYSQL_PASSWORD: 5eba7d39cfb
+      CONTENT_DIR: ${CONTENT_DIR:-/home/womx/CONTENT}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1322655cf8ca7aaf2d57e428f4a07a366ce0384882d73f60d990832d05860967}
+      MYSQL_DATABASE: ${DATABASE_NAME:-annyamodas_db}
+      MYSQL_USER: ${DATABASE_USER:-annyamodas_user}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-5eba7d39cfb}
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
@@ -43,24 +44,28 @@ services:
     container_name: annyamodas-app
     restart: always
     ports:
-      - '8080:3000'
+      - '${APP_PORT:-8080}:3000'
+    # ✅ Usar archivo .env específicamente
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
-      DATABASE_HOST: db
-      DATABASE_USER: annyamodas_user
-      DATABASE_PASSWORD: 5eba7d39cfb
-      DATABASE_NAME: annyamodas_db
-      JWT_SECRET: ea66f306553403a756d86c7b20f6712b4e4f05c8d4f4c801a0912f01ca5cf473
-      # Variables para subida de imágenes (si usas un servicio local)
+      # ✅ Sobrescribir variables específicas para el contenedor
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_HOST: db  # Siempre será 'db' dentro de Docker
+      DATABASE_USER: ${DATABASE_USER:-annyamodas_user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-5eba7d39cfb}
+      DATABASE_NAME: ${DATABASE_NAME:-annyamodas_db}
+      JWT_SECRET: ${JWT_SECRET:-ea66f306553403a756d86c7b20f6712b4e4f05c8d4f4c801a0912f01ca5cf473}
+      # Variables para subida de imágenes
       UPLOAD_DIR: /app/public/uploads
     depends_on:
       db:
         condition: service_healthy # Espera a que MySQL esté ready
     networks:
       - annyamodas-network
-    # Volumen para uploads (opcional, si quieres almacenar imágenes localmente)
+    # Volumen para uploads
     volumes:
-      - ./public/uploads:/app/public/uploads
+      - /home/womx/annyamodas/CONTENT:/home/womx/annyamodas/CONTENT
 
 # Definición de volúmenes y redes
 volumes:

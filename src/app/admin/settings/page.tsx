@@ -3,9 +3,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Key, Store, Phone, Download, Upload, RotateCcw } from 'lucide-react';
+import { Save, Key, Store, Phone } from 'lucide-react';
 import { useProducts } from '@/contexts/ProductsContext';
-import { exportData, resetStorage } from '@/lib/storage';
 import StoreIconUpload from '@/components/admin/StoreIconUpload';
 
 export default function AdminSettings() {
@@ -81,20 +80,6 @@ export default function AdminSettings() {
       newPassword: '',
       confirmPassword: ''
     }));
-  };
-
-  const handleExportData = () => {
-    exportData();
-    setMessage({ type: 'success', text: 'Datos exportados correctamente' });
-  };
-
-  const handleResetData = () => {
-    if (confirm('¿ADVERTENCIA! Esto eliminará TODOS los productos y configuraciones. ¿Estás seguro?')) {
-      if (confirm('¿Realmente quieres continuar? Esta acción no se puede deshacer.')) {
-        resetStorage();
-        window.location.reload();
-      }
-    }
   };
 
   return (
@@ -233,61 +218,64 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* Gestión de Datos */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Gestión de Datos</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={handleExportData}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center space-x-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Exportar Backup</span>
-          </button>
-          
-          <label className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center space-x-2 cursor-pointer">
-            <Upload className="w-4 h-4" />
-            <span>Importar Backup</span>
-            <input type="file" accept=".json" className="hidden" />
-          </label>
-          
-          <button
-            onClick={handleResetData}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center justify-center space-x-2"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset Completo</span>
-          </button>
-        </div>
-        
-        <div className="mt-4 text-sm text-gray-500">
-          <p>• <strong>Exportar:</strong> Descarga un archivo JSON con todos tus datos</p>
-          <p>• <strong>Importar:</strong> Restaura datos desde un archivo de backup</p>
-          <p>• <strong>Reset:</strong> Elimina TODOS los datos y vuelve a configuración inicial</p>
-        </div>
-      </div>
-
-      {/* Información del Sistema */}
+      {/* Información del Sistema Actualizada */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Sistema</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-medium text-gray-700">Versión:</span>
-            <span className="ml-2 text-gray-600">1.0.0</span>
+            <span className="ml-2 text-gray-600">2.0.0</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-700">Base de datos:</span>
+            <span className="ml-2 text-gray-600">MySQL 8.0</span>
           </div>
           <div>
             <span className="font-medium text-gray-700">Almacenamiento:</span>
-            <span className="ml-2 text-gray-600">Supabase</span>
+            <span className="ml-2 text-gray-600">Sistema de archivos local</span>
           </div>
           <div>
-            <span className="font-medium text-gray-700">Storage:</span>
-            <span className="ml-2 text-gray-600">Supabase Storage</span>
+            <span className="font-medium text-gray-700">Servidor:</span>
+            <span className="ml-2 text-gray-600">Docker + Next.js</span>
           </div>
           <div>
             <span className="font-medium text-gray-700">Última actualización:</span>
             <span className="ml-2 text-gray-600">{new Date().toLocaleDateString()}</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-700">Entorno:</span>
+            <span className="ml-2 text-gray-600">Producción</span>
+          </div>
+        </div>
+
+        {/* Estadísticas del sistema */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-3">Estado del Sistema</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 p-3 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-sm font-medium text-green-800">Base de Datos</span>
+              </div>
+              <div className="text-xs text-green-600 mt-1">Conectada y funcionando</div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                <span className="text-sm font-medium text-blue-800">API</span>
+              </div>
+              <div className="text-xs text-blue-600 mt-1">Todos los endpoints operativos</div>
+            </div>
+            
+            <div className="bg-purple-50 p-3 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                <span className="text-sm font-medium text-purple-800">Uploads</span>
+              </div>
+              <div className="text-xs text-purple-600 mt-1">Sistema de archivos activo</div>
+            </div>
           </div>
         </div>
       </div>

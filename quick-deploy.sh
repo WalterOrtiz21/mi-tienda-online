@@ -1,17 +1,16 @@
 #!/bin/bash
-# quick-deploy.sh - Deploy súper rápido con build incremental
-# Estrategia: build inteligente + swap rápido
+# quick-deploy.sh - Deploy súper rápido
 
 set -e
 trap 'echo "❌ Error en línea $LINENO"' ERR
 
-echo "⚡ ULTRA FAST DEPLOY"
-echo "==================="
+echo "⚡ ULTRA FAST DEPLOY v2.0"
+echo "========================="
 start_time=$(date +%s)
 
 # Configuración
 APP_NAME="annyamodas-app"
-BACKUP_NAME="annyamodas-app-backup"
+APP_IMAGE="annyamodas-app:latest"
 HEALTH_URL="http://localhost:8080/api/health"
 BUILD_CACHE_DIR=".build-cache"
 
@@ -72,6 +71,26 @@ else
 fi
 
 # ====================
+# GESTIÓN DE CONTENEDORES EXISTENTES
+# ====================
+
+print_status "Limpiando contenedores existentes..."
+
+# Parar contenedor actual si existe
+if docker ps -q -f name="^${APP_NAME}$" | grep -q .; then
+    print_status "Parando contenedor actual..."
+    docker stop $APP_NAME >/dev/null 2>&1 || true
+fi
+
+# Eliminar contenedor existente si existe
+if docker ps -aq -f name="^${APP_NAME}$" | grep -q .; then
+    print_status "Eliminando contenedor existente..."
+    docker rm $APP_NAME >/dev/null 2>&1 || true
+fi
+
+print_success "Contenedores limpiados"
+
+# ====================
 # BUILD INTELIGENTE
 # ====================
 
@@ -81,6 +100,7 @@ print_status "Verificando cambios..."
 CURRENT_HASH=$(find . -name "*.tsx" -o -name "*.ts" -o -name "*.js" -o -name "*.json" \
     -o -name "package*.json" -o -name "Dockerfile" -o -name "next.config.js" \
     -not -path "./node_modules/*" -not -path "./.next/*" -not -path "./build/*" \
+    -not -path "./.build-cache/*" \
     2>/dev/null | sort | xargs cat 2>/dev/null | md5sum | cut -d' ' -f1)
 
 LAST_HASH=""
@@ -89,7 +109,7 @@ if [ -f "$BUILD_CACHE_DIR/last_build_hash" ]; then
 fi
 
 BUILD_NEEDED=true
-if [ "$CURRENT_HASH" = "$LAST_HASH" ] && docker images | grep -q "annyamodas-app"; then
+if [ "$CURRENT_HASH" = "$LAST_HASH" ] && docker images | grep -q "$APP_IMAGE"; then
     print_success "No hay cambios detectados, usando imagen existente"
     BUILD_NEEDED=false
 else
@@ -106,6 +126,12 @@ if [ "$BUILD_NEEDED" = true ]; then
     # Usar buildkit para builds más rápidos
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
+    
+    # Limpiar imagen anterior si existe
+    if docker images | grep -q "$APP_IMAGE"; then
+        print_status "Eliminando imagen anterior..."
+        docker rmi $APP_IMAGE >/dev/null 2>&1 || true
+    fi
     
     # Build con cache inteligente
     if ! docker-compose build app 2>&1 | tee "$BUILD_CACHE_DIR/last_build.log"; then
@@ -128,33 +154,20 @@ else
 fi
 
 # ====================
-# DEPLOY RÁPIDO
+# DEPLOY RÁPIDO SIN DUPLICADOS
 # ====================
-
-if [ "$CURRENT_WORKING" = true ]; then
-    print_status "Haciendo backup del contenedor actual..."
-    # Backup rápido del contenedor actual
-    docker stop $APP_NAME > /dev/null 2>&1 || true
-    docker rename $APP_NAME $BACKUP_NAME > /dev/null 2>&1 || true
-fi
 
 print_status "Iniciando nueva aplicación..."
 
-# Iniciar nueva aplicación
+# Usar docker-compose up para crear solo el servicio app
 if docker-compose up -d app > /dev/null 2>&1; then
     print_success "Contenedor iniciado"
 else
     print_error "Error al iniciar contenedor"
     
-    # Restaurar backup si existe
-    if docker ps -a | grep -q $BACKUP_NAME; then
-        print_status "Restaurando backup..."
-        docker stop $APP_NAME > /dev/null 2>&1 || true
-        docker rm $APP_NAME > /dev/null 2>&1 || true
-        docker rename $BACKUP_NAME $APP_NAME > /dev/null 2>&1
-        docker start $APP_NAME > /dev/null 2>&1
-        print_warning "Aplicación restaurada al estado anterior"
-    fi
+    # Mostrar logs si falla
+    print_status "Logs del contenedor:"
+    docker-compose logs app --tail=20
     exit 1
 fi
 
@@ -181,16 +194,6 @@ while [ $attempt -le $max_attempts ]; do
         # Mostrar logs de error
         print_status "Logs de la aplicación:"
         docker-compose logs app --tail=15
-        
-        # Restaurar backup
-        if docker ps -a | grep -q $BACKUP_NAME; then
-            print_status "Restaurando backup..."
-            docker stop $APP_NAME > /dev/null 2>&1
-            docker rm $APP_NAME > /dev/null 2>&1
-            docker rename $BACKUP_NAME $APP_NAME > /dev/null 2>&1
-            docker start $APP_NAME > /dev/null 2>&1
-            print_warning "Aplicación restaurada"
-        fi
         exit 1
     fi
     
@@ -201,12 +204,6 @@ done
 
 echo ""
 print_success "Aplicación verificada en ${attempt}s"
-
-# Limpiar backup exitoso
-if docker ps -a | grep -q $BACKUP_NAME; then
-    docker rm -f $BACKUP_NAME > /dev/null 2>&1
-    print_success "Backup anterior limpiado"
-fi
 
 # ====================
 # VERIFICACIÓN EXTERNA OPCIONAL
@@ -219,6 +216,20 @@ else
 fi
 
 # ====================
+# LIMPIEZA POST-DEPLOY
+# ====================
+
+print_status "Limpiando recursos obsoletos..."
+
+# Limpiar imágenes dangling
+docker image prune -f > /dev/null 2>&1 || true
+
+# Limpiar contenedores parados
+docker container prune -f > /dev/null 2>&1 || true
+
+print_success "Limpieza completada"
+
+# ====================
 # ESTADÍSTICAS
 # ====================
 
@@ -229,8 +240,8 @@ echo ""
 echo -e "${GREEN}🎯 DEPLOY ULTRA RÁPIDO COMPLETADO${NC}"
 echo "================================"
 echo -e "   ⏱️  Tiempo total: ${BLUE}${total_time}s${NC}"
-echo -e "   ⚡ Downtime: ${BLUE}~3-5s${NC}"
-echo -e "   🔧 Build: ${BUILD_NEEDED}"
+echo -e "   ⚡ Downtime: ${BLUE}~2-3s${NC}"
+echo -e "   🔧 Build necesario: ${BUILD_NEEDED}"
 echo -e "   🌐 Web: ${BLUE}https://annyamodas.com${NC}"
 echo -e "   👨‍💼 Admin: ${BLUE}https://annyamodas.com/admin${NC}"
 
@@ -238,11 +249,20 @@ echo ""
 print_status "Estado de servicios:"
 docker-compose ps
 
-# Limpiar imágenes antiguas para ahorrar espacio
-print_status "Limpiando imágenes obsoletas..."
-docker image prune -f > /dev/null 2>&1 || true
+# Verificar que no hay duplicados
+APP_COUNT=$(docker ps --filter name="annyamodas-app" --format "table {{.Names}}" | grep -c "annyamodas-app" || echo "0")
+if [ "$APP_COUNT" -gt 1 ]; then
+    print_warning "Se detectaron múltiples contenedores de app. Limpiando..."
+    docker ps --filter name="annyamodas-app" --format "table {{.Names}}" | tail -n +2 | head -n -1 | xargs -r docker stop
+    docker ps -a --filter name="annyamodas-app" --format "table {{.Names}}" | tail -n +2 | head -n -1 | xargs -r docker rm
+    print_success "Duplicados eliminados"
+elif [ "$APP_COUNT" -eq 1 ]; then
+    print_success "Solo hay un contenedor de app ejecutándose"
+else
+    print_error "No hay contenedores de app ejecutándose"
+fi
 
 print_success "Deploy completado exitosamente!"
 
 # Guardar estadísticas de deploy
-echo "$(date '+%Y-%m-%d %H:%M:%S'),${total_time}s,${BUILD_NEEDED}" >> "$BUILD_CACHE_DIR/deploy_stats.csv"
+echo "$(date '+%Y-%m-%d %H:%M:%S'),${total_time}s,${BUILD_NEEDED},${APP_COUNT}" >> "$BUILD_CACHE_DIR/deploy_stats.csv"
