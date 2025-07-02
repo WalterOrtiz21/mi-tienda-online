@@ -1,45 +1,134 @@
-// src/lib/database.ts
+// src/lib/database.ts - Configuración mejorada para desarrollo y producción
 
 import mysql from 'mysql2/promise';
 import { Product } from './types';
 
-// Configuración de la conexión con UTF-8 explícito
-const dbConfig = {
-  host: process.env.DATABASE_HOST || 'localhost',
-  user: process.env.DATABASE_USER || 'annyamodas_user',
-  password: process.env.DATABASE_PASSWORD || '5eba7d39cfb',
-  database: process.env.DATABASE_NAME || 'annyamodas_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  charset: 'utf8mb4',
-  collation: 'utf8mb4_unicode_ci',
-  typeCast: function (field: any, next: any) {
-    if (field.type === 'VAR_STRING' || field.type === 'STRING') {
-      return field.string();
+// Detectar entorno y configurar conexión apropiada
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isDocker = process.env.DOCKER_ENV === 'true';
+
+// Configuración de la conexión con fallback inteligente
+const getDatabaseConfig = () => {
+  // Si estamos en desarrollo local (fuera de Docker)
+  if (isDevelopment && !isDocker) {
+    console.log('🔧 Configurando base de datos para desarrollo local');
+    return {
+      host: process.env.DATABASE_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '3306'),
+      user: process.env.DATABASE_USER || 'annyamodas_user',
+      password: process.env.DATABASE_PASSWORD || '5eba7d39cfb',
+      database: process.env.DATABASE_NAME || 'annyamodas_db',
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      charset: 'utf8mb4',
+      collation: 'utf8mb4_unicode_ci',
+      acquireTimeout: 60000,
+      timeout: 60000,
+      reconnect: true,
+      typeCast: function (field: any, next: any) {
+        if (field.type === 'VAR_STRING' || field.type === 'STRING') {
+          return field.string();
+        }
+        return next();
+      }
+    };
+  }
+
+  // Si estamos en Docker o producción
+  console.log('🐳 Configurando base de datos para Docker/Producción');
+  return {
+    host: process.env.DATABASE_HOST || 'db',
+    port: parseInt(process.env.DATABASE_PORT || '3306'),
+    user: process.env.DATABASE_USER || 'annyamodas_user',
+    password: process.env.DATABASE_PASSWORD || '5eba7d39cfb',
+    database: process.env.DATABASE_NAME || 'annyamodas_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    charset: 'utf8mb4',
+    collation: 'utf8mb4_unicode_ci',
+    acquireTimeout: 60000,
+    timeout: 60000,
+    reconnect: true,
+    typeCast: function (field: any, next: any) {
+      if (field.type === 'VAR_STRING' || field.type === 'STRING') {
+        return field.string();
+      }
+      return next();
     }
-    return next();
+  };
+};
+
+// Pool de conexiones con reintentos
+let pool: mysql.Pool;
+let connectionAttempts = 0;
+const maxAttempts = 5;
+
+const createPool = async () => {
+  const config = getDatabaseConfig();
+  
+  try {
+    pool = mysql.createPool(config);
+    
+    // Probar la conexión
+    const connection = await pool.getConnection();
+    await connection.ping();
+    connection.release();
+    
+    console.log(`✅ Conexión a base de datos establecida (${config.host}:${config.port})`);
+    connectionAttempts = 0;
+    return pool;
+    
+  } catch (error) {
+    connectionAttempts++;
+    console.error(`❌ Error conectando a la base de datos (intento ${connectionAttempts}/${maxAttempts}):`, error);
+    
+    if (connectionAttempts < maxAttempts) {
+      console.log(`🔄 Reintentando en 3 segundos...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return createPool();
+    } else {
+      console.error('💥 Máximo número de intentos de conexión alcanzado');
+      throw error;
+    }
   }
 };
 
-// Pool de conexiones
-let pool: mysql.Pool;
-
-const getPool = () => {
+const getPool = async () => {
   if (!pool) {
-    pool = mysql.createPool(dbConfig);
+    pool = await createPool();
   }
   return pool;
 };
 
-// Función helper para ejecutar queries
+// Función helper para ejecutar queries con manejo de errores mejorado
 export const executeQuery = async (query: string, params: any[] = []) => {
   try {
-    const pool = getPool();
-    const [results] = await pool.execute(query, params);
+    const poolInstance = await getPool();
+    const [results] = await poolInstance.execute(query, params);
     return results;
   } catch (error) {
     console.error('Database query error:', error);
+    
+    // Si es un error de conexión, intentar reconectar
+    if (error && typeof error === 'object' && 'code' in error) {
+      const dbError = error as any;
+      if (['ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT'].includes(dbError.code)) {
+        console.log('🔄 Error de conexión detectado, intentando reconectar...');
+        pool = await createPool();
+        
+        // Reintentar la query una vez
+        try {
+          const [results] = await pool.execute(query, params);
+          return results;
+        } catch (retryError) {
+          console.error('❌ Error en reintento:', retryError);
+          throw retryError;
+        }
+      }
+    }
+    
     throw error;
   }
 };
@@ -63,7 +152,7 @@ const safeJsonParse = (jsonString: any, fallback: any[] = []): any[] => {
   return fallback;
 };
 
-// Mapear datos de MySQL a nuestro tipo Product actualizado
+// Mapear datos de MySQL a nuestro tipo Product
 const mapProductFromDB = (dbProduct: any): Product => ({
   id: dbProduct.id,
   name: dbProduct.name,
@@ -85,7 +174,7 @@ const mapProductFromDB = (dbProduct: any): Product => ({
   tags: safeJsonParse(dbProduct.tags, [])
 });
 
-// API Functions para productos actualizadas
+// API Functions para productos
 export const productAPI = {
   // Obtener todos los productos
   async getAll(): Promise<Product[]> {
@@ -131,7 +220,7 @@ export const productAPI = {
     }
   },
 
-  // Crear producto actualizado
+  // Crear producto
   async create(product: Omit<Product, 'id'>): Promise<Product | null> {
     try {
       const result = await executeQuery(
@@ -295,10 +384,9 @@ export const productAPI = {
     }
   },
 
-  // ✅ Obtener estadísticas CON TIPOS CORREGIDOS
+  // Obtener estadísticas
   async getStats() {
     try {
-      // ✅ Tipado correcto para las queries
       const categoryStats = await executeQuery(`
         SELECT 
           category,
@@ -331,7 +419,7 @@ export const productAPI = {
   }
 };
 
-// Settings API (sin cambios)
+// Settings API
 export const settingsAPI = {
   async get() {
     try {
@@ -377,9 +465,13 @@ export const settingsAPI = {
   }
 };
 
-// Test de conexión
+// Test de conexión con información detallada
 export const testConnection = async (): Promise<boolean> => {
   try {
+    console.log('🔍 Probando conexión a la base de datos...');
+    const config = getDatabaseConfig();
+    console.log(`📡 Intentando conectar a: ${config.host}:${config.port}`);
+    
     await executeQuery('SELECT 1');
     console.log('✅ Database connection successful');
     return true;
@@ -388,3 +480,15 @@ export const testConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Inicializar conexión al importar el módulo
+if (typeof window === 'undefined') {
+  // Solo en el servidor
+  testConnection().then(success => {
+    if (success) {
+      console.log('🚀 Base de datos lista para usar');
+    } else {
+      console.log('⚠️ Problemas con la conexión a la base de datos');
+    }
+  });
+}

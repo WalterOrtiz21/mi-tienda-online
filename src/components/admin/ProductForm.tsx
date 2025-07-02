@@ -1,9 +1,9 @@
-// src/components/admin/ProductForm.tsx
+// src/components/admin/ProductForm.tsx - Actualizado con sistema de imágenes mejorado
 
 'use client';
 
 import { useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, ImageIcon } from 'lucide-react';
 import { Product } from '@/lib/types';
 import ImageUpload from './ImageUpload';
 
@@ -20,15 +20,15 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
     price: product?.price || 0,
     originalPrice: product?.originalPrice || 0,
     image: product?.image || '',
-    images: product?.images?.join('\n') || '', // Separar por líneas
+    images: product?.images || [], // Ya como array
     description: product?.description || '',
     category: product?.category || 'prendas',
     subcategory: product?.subcategory || '',
     gender: product?.gender || 'unisex',
-    sizes: product?.sizes?.join(', ') || '', // Nuevo: talles separados por comas
-    colors: product?.colors?.join(', ') || '', // Nuevo: colores separados por comas
-    material: product?.material || '', // Nuevo: material
-    brand: product?.brand || '', // Nuevo: marca
+    sizes: product?.sizes?.join(', ') || '', // Talles separados por comas
+    colors: product?.colors?.join(', ') || '', // Colores separados por comas
+    material: product?.material || '',
+    brand: product?.brand || '',
     rating: product?.rating || 4.0,
     inStock: product?.inStock ?? true,
     features: product?.features?.join(', ') || '',
@@ -40,9 +40,7 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
     
     const productData = {
       ...formData,
-      images: formData.images 
-        ? formData.images.split('\n').map(url => url.trim()).filter(url => url)
-        : [],
+      images: formData.images, // Ya es array
       sizes: formData.sizes 
         ? formData.sizes.split(',').map(s => s.trim()).filter(s => s)
         : [],
@@ -65,22 +63,18 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
     }));
   };
 
-  const handleImageUploaded = (url: string) => {
+  const handleMainImageUploaded = (url: string) => {
     setFormData(prev => ({ ...prev, image: url }));
   };
 
-  const handleMultipleImagesUploaded = (urls: string[]) => {
-    const currentImages = formData.images 
-      ? formData.images.split('\n').filter(img => img.trim())
-      : [];
-    const newImages = [...currentImages, ...urls];
-    setFormData(prev => ({ ...prev, images: newImages.join('\n') }));
+  const handleAdditionalImagesUploaded = (urls: string[]) => {
+    setFormData(prev => ({ ...prev, images: urls }));
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <h2 className="text-xl font-semibold">
             {product ? 'Editar Producto' : 'Nuevo Producto'}
           </h2>
@@ -141,7 +135,7 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
               />
             </div>
 
-            {/* Género */}
+            {/* Género y Marca */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Género *
@@ -158,7 +152,6 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
               </select>
             </div>
 
-            {/* Marca */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Marca
@@ -254,55 +247,72 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
             />
           </div>
 
-          {/* Imagen Principal con Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Imagen Principal *
-            </label>
-            <ImageUpload
-              onImageUploaded={handleImageUploaded}
-              currentImage={formData.image}
-            />
-            
-            {/* Campo manual como backup */}
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                O pegar URL manualmente:
-              </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://ejemplo.com/imagen.jpg"
-              />
-            </div>
-          </div>
+          {/* SECCIÓN DE IMÁGENES MEJORADA */}
+          <div className="space-y-6 p-6 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <ImageIcon className="w-5 h-5 mr-2" />
+              Gestión de Imágenes
+            </h3>
 
-          {/* Imágenes Adicionales */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Imágenes Adicionales (Carrusel)
-            </label>
-            <ImageUpload
-              onMultipleImagesUploaded={handleMultipleImagesUploaded}
-              multiple={true}
-            />
-            
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                URLs adicionales (una por línea):
-              </label>
-              <textarea
-                name="images"
-                value={formData.images}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://ejemplo.com/imagen2.jpg&#10;https://ejemplo.com/imagen3.jpg"
+            {/* Imagen Principal */}
+            <div>
+              <h4 className="text-md font-medium text-gray-700 mb-3">
+                Imagen Principal * 
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  (Esta será la imagen que se muestre en el catálogo)
+                </span>
+              </h4>
+              <ImageUpload
+                onImageUploaded={handleMainImageUploaded}
+                currentImage={formData.image}
+                multiple={false}
+                showDebug={true}
               />
+              
+              {!formData.image && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-700">
+                    ⚠️ Se requiere una imagen principal para el producto
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Imágenes Adicionales */}
+            <div>
+              <h4 className="text-md font-medium text-gray-700 mb-3">
+                Galería de Imágenes
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  (Imágenes adicionales para el carrusel del producto)
+                </span>
+              </h4>
+              <ImageUpload
+                onMultipleImagesUploaded={handleAdditionalImagesUploaded}
+                currentImages={formData.images}
+                multiple={true}
+                maxFiles={8}
+                showDebug={true}
+              />
+              
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  💡 <strong>Tip:</strong> Sube múltiples ángulos del producto para que los clientes puedan verlo mejor.
+                  Se recomienda incluir: vista frontal, posterior, detalles, y el producto en uso.
+                </p>
+              </div>
+            </div>
+
+            {/* Resumen de imágenes */}
+            {(formData.image || formData.images.length > 0) && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Resumen de imágenes:</h5>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <div>📸 Imagen principal: {formData.image ? '✅ Configurada' : '❌ Faltante'}</div>
+                  <div>🖼️ Imágenes adicionales: {formData.images.length} imagen(es)</div>
+                  <div>📊 Total: {(formData.image ? 1 : 0) + formData.images.length} imagen(es)</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Descripción */}
@@ -314,10 +324,14 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows={3}
+              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Describe el producto, sus características principales y beneficios..."
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Una buena descripción ayuda a los clientes a entender mejor el producto
+            </p>
           </div>
 
           {/* Rating y Stock */}
@@ -344,9 +358,9 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
                   name="inStock"
                   checked={formData.inStock}
                   onChange={handleChange}
-                  className="mr-2"
+                  className="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-gray-700">En Stock</span>
+                <span className="text-sm font-medium text-gray-700">Producto en Stock</span>
               </label>
             </div>
           </div>
@@ -365,6 +379,9 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="ej: Cómodo, Resistente, Lavable"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Características destacadas que aparecerán como etiquetas
+              </p>
             </div>
 
             <div>
@@ -379,23 +396,51 @@ export default function ProductForm({ product, onSave, onCancel, isLoading = fal
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="ej: casual, elegante, deportivo"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Tags para mejorar la búsqueda y categorización
+              </p>
+            </div>
+          </div>
+
+          {/* Validation Summary */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Validación del formulario:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div className={formData.name ? 'text-green-600' : 'text-red-600'}>
+                {formData.name ? '✅' : '❌'} Nombre del producto
+              </div>
+              <div className={formData.description ? 'text-green-600' : 'text-red-600'}>
+                {formData.description ? '✅' : '❌'} Descripción
+              </div>
+              <div className={formData.price > 0 ? 'text-green-600' : 'text-red-600'}>
+                {formData.price > 0 ? '✅' : '❌'} Precio válido
+              </div>
+              <div className={formData.image ? 'text-green-600' : 'text-red-600'}>
+                {formData.image ? '✅' : '❌'} Imagen principal
+              </div>
+              <div className={formData.sizes ? 'text-green-600' : 'text-red-600'}>
+                {formData.sizes ? '✅' : '❌'} Talles disponibles
+              </div>
+              <div className={formData.subcategory ? 'text-green-600' : 'text-red-600'}>
+                {formData.subcategory ? '✅' : '❌'} Subcategoría
+              </div>
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-end space-x-3 pt-4 border-t sticky bottom-0 bg-white">
             <button
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center space-x-2"
+              disabled={isLoading || !formData.name || !formData.description || !formData.image || formData.price <= 0}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
             >
               {isLoading ? (
                 <>
