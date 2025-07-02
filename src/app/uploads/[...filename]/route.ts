@@ -1,4 +1,4 @@
-// src/app/uploads/[...filename]/route.ts - Sin cache agresivo
+// src/app/uploads/[...filename]/route.ts - Sin cache agresivo, detección inmediata
 
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile, stat } from 'fs/promises';
@@ -35,11 +35,12 @@ export async function GET(
     const filePath = join(UPLOAD_DIR, ...filename);
     const fullFilename = filename.join('/');
 
-    console.log(`🖼️ Sirviendo imagen: ${filePath}`);
+    console.log(`🖼️ Sirviendo imagen inmediata: ${filePath}`);
 
     // Verificar que el archivo existe
+    let fileStats;
     try {
-      await stat(filePath);
+      fileStats = await stat(filePath);
     } catch (error) {
       console.log(`❌ Archivo no encontrado: ${filePath}`);
       return NextResponse.json(
@@ -54,24 +55,47 @@ export async function GET(
     // Determinar tipo MIME
     const mimeType = getMimeType(fullFilename);
     
-    // Headers SIN cache agresivo para development
+    // 🔥 HEADERS SIN CACHE - Detección inmediata
     const headers = new Headers({
       'Content-Type': mimeType,
       'Content-Length': fileBuffer.length.toString(),
-      'Cache-Control': 'public, max-age=60', // Solo 1 minuto de cache
+      // 🚨 SIN CACHE para desarrollo y testing
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      // CORS permisivo
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+      // Timestamp para debug
+      'X-Served-At': new Date().toISOString(),
+      'X-File-Size': fileBuffer.length.toString(),
+      'X-File-Modified': fileStats.mtime.toISOString(),
+      // Evitar cache del navegador
       'Last-Modified': new Date().toUTCString(),
     });
 
-    console.log(`✅ Imagen servida: ${fullFilename} (${mimeType})`);
+    console.log(`✅ Imagen servida SIN CACHE: ${fullFilename} (${mimeType})`);
 
     return new NextResponse(fileBuffer, { headers });
 
   } catch (error) {
-    console.error('Error serving image:', error);
+    console.error('❌ Error serving image:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
+}
+
+// Manejar OPTIONS para CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+    },
+  });
 }

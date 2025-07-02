@@ -1,10 +1,10 @@
-// src/app/api/upload/route.ts - Versión con revalidación forzada
+// src/app/api/upload/route.ts - Versión sin cache con revalidación forzada
 
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 const CONTENT_DIR = process.env.CONTENT_DIR || '/opt/annyamodas/CONTENT';
 const UPLOAD_DIR = join(CONTENT_DIR, 'uploads');
@@ -22,8 +22,10 @@ const ensureUploadDir = async () => {
 
 const generateFileName = (originalName: string): string => {
   const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+  const timestamp = Date.now();
   const uniqueName = randomUUID();
-  return `${uniqueName}.${extension}`;
+  // Incluir timestamp para evitar colisiones y cache
+  return `${timestamp}-${uniqueName}.${extension}`;
 };
 
 export async function POST(request: NextRequest) {
@@ -72,49 +74,49 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ File saved: ${filePath}`);
 
-    // 🔥 CRÍTICO: Forzar revalidación inmediata
+    // 🔥 REVALIDACIÓN AGRESIVA - Múltiples estrategias
     try {
-      // Revalidar múltiples rutas para asegurar que Next.js detecte el archivo
+      // 1. Revalidar rutas específicas
       revalidatePath(`/uploads/${fileName}`);
       revalidatePath('/uploads/[...filename]', 'page');
       revalidatePath('/', 'layout');
       
-      console.log(`🔄 Paths revalidated for: ${fileName}`);
+      // 2. Revalidar tags (si los usas)
+      revalidateTag('images');
+      revalidateTag('uploads');
       
-      // También forzar limpieza de cache
-      if (typeof fetch !== 'undefined') {
-        // Hacer una request interna para "calentar" la ruta
-        const baseUrl = request.headers.get('host') || 'localhost:8080';
-        const protocol = request.headers.get('x-forwarded-proto') || 'http';
-        const testUrl = `${protocol}://${baseUrl}/uploads/${fileName}`;
-        
-        // Request no-bloqueante para precalentar la ruta
-        fetch(testUrl, { method: 'HEAD' }).catch(() => {
-          console.log('Preload request sent');
-        });
-      }
+      console.log(`🔄 Aggressive revalidation completed for: ${fileName}`);
       
     } catch (error) {
       console.log(`⚠️ Revalidation warning:`, error);
     }
 
-    // URL final
+    // 🔥 URL CON CACHE BUSTER
     const host = request.headers.get('host') || 'annyamodas.com';
     const protocol = request.headers.get('x-forwarded-proto') || 'https';
-    const publicUrl = `${protocol}://${host}/uploads/${fileName}`;
+    const cacheBuster = Date.now();
+    const publicUrl = `${protocol}://${host}/uploads/${fileName}?v=${cacheBuster}`;
 
-    console.log(`🌐 Generated URL: ${publicUrl}`);
+    console.log(`🌐 Generated URL with cache buster: ${publicUrl}`);
 
-    return NextResponse.json({
+    // Response con headers anti-cache
+    const response = NextResponse.json({
       success: true,
       url: publicUrl,
       fileName: fileName,
       size: file.size,
       type: file.type,
-      // Agregar timestamp para debugging
       timestamp: new Date().toISOString(),
-      savedPath: filePath
+      savedPath: filePath,
+      cacheBuster: cacheBuster
     });
+
+    // Headers para evitar cache
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
 
   } catch (error) {
     console.error('❌ Upload error:', error);
@@ -132,7 +134,7 @@ export async function GET() {
     const { readdir } = await import('fs/promises');
     const files = await readdir(UPLOAD_DIR);
     
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       message: 'Upload endpoint is working',
       uploadDir: UPLOAD_DIR,
       maxFileSize: '5MB',
@@ -141,6 +143,11 @@ export async function GET() {
       files: files.slice(0, 10),
       timestamp: new Date().toISOString()
     });
+
+    // Anti-cache headers
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' }, 

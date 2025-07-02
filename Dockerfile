@@ -1,5 +1,5 @@
-# ---- Dockerfile Optimizado para Annya Modas ----
-# Dockerfile mejorado con mejor cache y multi-stage builds
+# ---- Dockerfile Optimizado para Annya Modas - Sin Cache Issues ----
+# Dockerfile mejorado para detección inmediata de uploads
 
 # ---- 1. Etapa Base ----
 FROM node:18-alpine AS base
@@ -33,8 +33,9 @@ RUN npm ci --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Deshabilitar TypeScript strict checking para build más rápido (opcional)
-ENV NEXT_STRICT_CSP=false
+# 🔥 VARIABLES CRÍTICAS PARA UPLOAD SIN CACHE
+ENV NEXT_CACHE_ENABLED=false
+ENV NEXT_PRIVATE_STANDALONE=true
 
 # Build de la aplicación
 RUN npm run build
@@ -46,13 +47,19 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# 🔥 VARIABLES PARA DETECCIÓN INMEDIATA DE UPLOADS
+ENV NEXT_CACHE_ENABLED=false
+ENV UPLOADS_NO_CACHE=true
+
 # Crear usuario no-root para seguridad
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Crear directorios necesarios con permisos correctos
-RUN mkdir -p /app/public/uploads && \
+# 🔥 CREAR ESTRUCTURA DE DIRECTORIOS OPTIMIZADA
+RUN mkdir -p /opt/annyamodas/CONTENT/uploads && \
+    mkdir -p /app/public/uploads && \
     mkdir -p /app/.next && \
+    chown -R nextjs:nodejs /opt/annyamodas && \
     chown -R nextjs:nodejs /app
 
 # Copiar archivos públicos
@@ -62,8 +69,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Asegurar permisos del directorio de uploads
-RUN chown -R nextjs:nodejs /app/public/uploads
+# 🔥 CREAR SYMLINK PARA UPLOADS (crítico para detección)
+RUN ln -sf /opt/annyamodas/CONTENT/uploads /app/public/uploads && \
+    chown -h nextjs:nodejs /app/public/uploads
+
+# Asegurar permisos correctos
+RUN chown -R nextjs:nodejs /opt/annyamodas/CONTENT && \
+    chmod -R 755 /opt/annyamodas/CONTENT
 
 # Cambiar a usuario no-root
 USER nextjs
@@ -75,9 +87,13 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Health check
+# 🔥 VARIABLES CRÍTICAS PARA RUNTIME
+ENV CONTENT_DIR=/opt/annyamodas/CONTENT
+ENV UPLOADS_DIR=/opt/annyamodas/CONTENT/uploads
+
+# Health check mejorado
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node healthcheck.js || exit 1
+  CMD node -e "const http = require('http'); const options = { hostname: 'localhost', port: 3000, path: '/api/health', method: 'GET' }; const req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();" || exit 1
 
 # Comando de inicio
 CMD ["node", "server.js"]
