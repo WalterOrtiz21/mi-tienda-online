@@ -1,77 +1,102 @@
-# docker-compose.yml
+# docker-compose.yml - Versión completamente parametrizada y segura
 version: '3.8'
 
 services:
   # Servicio de la Base de Datos MySQL
   db:
-    image: mysql:8.0
-    container_name: annyamodas-db
-    restart: always
+    image: mysql:${MYSQL_VERSION:-8.0}
+    container_name: ${DB_CONTAINER_NAME:-annyamodas-db}
+    restart: ${RESTART_POLICY:-always}
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --init-connect='SET NAMES utf8mb4;'
       --innodb-flush-log-at-trx-commit=0
     environment:
-      CONTENT_DIR: ${CONTENT_DIR:-/home/womx/CONTENT}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1322655cf8ca7aaf2d57e428f4a07a366ce0384882d73f60d990832d05860967}
-      MYSQL_DATABASE: ${DATABASE_NAME:-annyamodas_db}
-      MYSQL_USER: ${DATABASE_USER:-annyamodas_user}
-      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-5eba7d39cfb}
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_CHARSET: ${MYSQL_CHARSET:-utf8mb4}
+      MYSQL_COLLATION: ${MYSQL_COLLATION:-utf8mb4_unicode_ci}
     ports:
-      # Exponemos el puerto de MySQL solo a nuestra máquina local para seguridad
-      - '127.0.0.1:3306:3306'
+      - '${DB_HOST_IP:-127.0.0.1}:${DB_PORT:-3306}:3306'
     volumes:
-      # Persiste los datos de la base de datos
-      - mysql-data:/var/lib/mysql
-      # Script de inicialización
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ${DB_DATA_VOLUME:-mysql-data}:/var/lib/mysql
+      - ${INIT_SQL_PATH:-./init.sql}:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - annyamodas-network
-    # Verificación de salud de la base de datos
+      - ${NETWORK_NAME:-annyamodas-network}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      timeout: ${DB_HEALTH_TIMEOUT:-20s}
+      retries: ${DB_HEALTH_RETRIES:-10}
 
   # Servicio de la Aplicación Next.js
   app:
     build: 
-      context: .
-      dockerfile: Dockerfile
-    container_name: annyamodas-app
-    restart: always
+      context: ${BUILD_CONTEXT:-.}
+      dockerfile: ${DOCKERFILE_PATH:-Dockerfile}
+    container_name: ${APP_CONTAINER_NAME:-annyamodas-app}
+    restart: ${RESTART_POLICY:-always}
     ports:
-      - '${APP_PORT:-8080}:3000'
-    # ✅ Usar archivo .env específicamente
+      - '${APP_HOST_IP:-0.0.0.0}:${APP_PORT:-8080}:${APP_INTERNAL_PORT:-3000}'
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
     environment:
-      # ✅ Sobrescribir variables específicas para el contenedor
+      # Configuración de aplicación
       NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_HOST: db  # Siempre será 'db' dentro de Docker
-      DATABASE_USER: ${DATABASE_USER:-annyamodas_user}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-5eba7d39cfb}
-      DATABASE_NAME: ${DATABASE_NAME:-annyamodas_db}
-      JWT_SECRET: ${JWT_SECRET:-ea66f306553403a756d86c7b20f6712b4e4f05c8d4f4c801a0912f01ca5cf473}
-      # Variables para subida de imágenes
-      UPLOAD_DIR: /app/public/uploads
+      PORT: ${APP_INTERNAL_PORT:-3000}
+      HOSTNAME: ${APP_HOSTNAME:-0.0.0.0}
+      
+      # Base de datos
+      DATABASE_HOST: ${DATABASE_HOST:-db}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_PORT: ${DATABASE_PORT:-3306}
+      
+      # Seguridad
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      
+      # Configuración de uploads
+      CONTENT_DIR: ${CONTENT_DIR_CONTAINER:-/opt/annyamodas/CONTENT}
+      UPLOADS_DIR: ${UPLOADS_DIR_CONTAINER:-/opt/annyamodas/CONTENT/uploads}
+      UPLOAD_DIR: ${UPLOADS_DIR_CONTAINER:-/opt/annyamodas/CONTENT/uploads}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-image/jpeg,image/png,image/webp,image/gif}
+      
+      # Configuración de cache
+      UPLOADS_NO_CACHE: ${UPLOADS_NO_CACHE:-true}
+      NEXT_CACHE_ENABLED: ${NEXT_CACHE_ENABLED:-false}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-1}
+      
+      # Configuración de proxy/headers
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      FORWARDED_HEADERS: ${FORWARDED_HEADERS:-true}
+      
+      # Debug (solo desarrollo)
+      DEBUG_PROTOCOL_DETECTION: ${DEBUG_PROTOCOL_DETECTION:-false}
+      DEBUG_UPLOADS: ${DEBUG_UPLOADS:-false}
+      
     depends_on:
       db:
-        condition: service_healthy # Espera a que MySQL esté ready
+        condition: service_healthy
     networks:
-      - annyamodas-network
-    # Volumen para uploads
+      - ${NETWORK_NAME:-annyamodas-network}
+    
+    # Volúmenes parametrizados
     volumes:
-      - /home/womx/annyamodas/CONTENT:/home/womx/annyamodas/CONTENT
+      - ${CONTENT_DIR_HOST}:${CONTENT_DIR_CONTAINER:-/opt/annyamodas/CONTENT}
+      
+    # Usuario parametrizado
+    user: "${APP_USER_ID:-1001}:${APP_GROUP_ID:-1001}"
 
 # Definición de volúmenes y redes
 volumes:
   mysql-data:
-    driver: local
+    driver: ${VOLUME_DRIVER:-local}
 
 networks:
   annyamodas-network:
-    driver: bridge
+    driver: ${NETWORK_DRIVER:-bridge}
