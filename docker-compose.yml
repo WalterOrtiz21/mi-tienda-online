@@ -1,4 +1,5 @@
-# docker-compose.yml - Versión completamente parametrizada y segura
+# docker-compose.yml - Versión que funciona con mapeo correcto
+
 version: '3.8'
 
 services:
@@ -47,6 +48,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${APP_INTERNAL_PORT:-3000}
       HOSTNAME: ${APP_HOSTNAME:-0.0.0.0}
+      DOCKER_ENV: "true"
       
       # Base de datos
       DATABASE_HOST: ${DATABASE_HOST:-db}
@@ -59,23 +61,25 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       
-      # Configuración de uploads
-      CONTENT_DIR: ${CONTENT_DIR_CONTAINER:-/opt/annyamodas/CONTENT}
-      UPLOADS_DIR: ${UPLOADS_DIR_CONTAINER:-/opt/annyamodas/CONTENT/uploads}
-      UPLOAD_DIR: ${UPLOADS_DIR_CONTAINER:-/opt/annyamodas/CONTENT/uploads}
+      # 🎯 CONFIGURACIÓN DE UPLOADS QUE FUNCIONA
+      CONTENT_DIR: ${CONTENT_DIR_CONTAINER:-/home/womx/annyamodas/CONTENT}
+      UPLOADS_DIR: ${UPLOADS_DIR_CONTAINER:-/home/womx/annyamodas/CONTENT/uploads}
+      UPLOAD_DIR: ${UPLOADS_DIR_CONTAINER:-/home/womx/annyamodas/CONTENT/uploads}
+      CONTENT_DIR_HOST: ${CONTENT_DIR_HOST}
+      
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
       ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-image/jpeg,image/png,image/webp,image/gif}
       
       # Configuración de cache
-      UPLOADS_NO_CACHE: ${UPLOADS_NO_CACHE:-true}
-      NEXT_CACHE_ENABLED: ${NEXT_CACHE_ENABLED:-false}
+      UPLOADS_NO_CACHE: ${UPLOADS_NO_CACHE:-false}
+      NEXT_CACHE_ENABLED: ${NEXT_CACHE_ENABLED:-true}
       NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-1}
       
-      # Configuración de proxy/headers
+      # Configuración de proxy/headers para HTTPS
       TRUST_PROXY: ${TRUST_PROXY:-true}
       FORWARDED_HEADERS: ${FORWARDED_HEADERS:-true}
       
-      # Debug (solo desarrollo)
+      # Debug
       DEBUG_PROTOCOL_DETECTION: ${DEBUG_PROTOCOL_DETECTION:-false}
       DEBUG_UPLOADS: ${DEBUG_UPLOADS:-false}
       
@@ -85,12 +89,12 @@ services:
     networks:
       - ${NETWORK_NAME:-annyamodas-network}
     
-    # Volúmenes parametrizados
+    # 🎯 MAPEO DE VOLUMEN QUE FUNCIONA
+    # Mapear el directorio del host que ya existe y tiene permisos
     volumes:
-      - ${CONTENT_DIR_HOST}:${CONTENT_DIR_CONTAINER:-/opt/annyamodas/CONTENT}
+      - ${CONTENT_DIR_HOST}:${CONTENT_DIR_CONTAINER:-/home/womx/annyamodas/CONTENT}
       
-    # Usuario parametrizado
-    user: "${APP_USER_ID:-1001}:${APP_GROUP_ID:-1001}"
+    # 🎯 NO ESPECIFICAR USER AQUÍ, usar el del Dockerfile
 
 # Definición de volúmenes y redes
 volumes:

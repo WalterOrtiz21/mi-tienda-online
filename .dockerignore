@@ -6,7 +6,7 @@ node_modules
 out
 
 # Archivos de entorno local
-#.env.local
+.env.local
 
 # Archivos de Docker
 Dockerfile
