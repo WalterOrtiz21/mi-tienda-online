@@ -30,10 +30,10 @@ export default function AdminProducts() {
 
   const handleSaveProduct = async (productData: Omit<Product, 'id'>) => {
     setIsLoading(true);
-    
+
     try {
       let success = false;
-      
+
       if (editingProduct) {
         success = await updateProduct(editingProduct.id, productData);
         if (success) {
@@ -45,7 +45,7 @@ export default function AdminProducts() {
           showMessage('success', 'Producto creado correctamente');
         }
       }
-      
+
       if (success) {
         setShowForm(false);
         setEditingProduct(null);
@@ -70,7 +70,7 @@ export default function AdminProducts() {
     }
 
     setIsLoading(true);
-    
+
     try {
       const success = await deleteProduct(id);
       if (success) {
@@ -102,15 +102,121 @@ export default function AdminProducts() {
     }
   };
 
+  // Exportar productos a CSV
+  const handleExportCSV = () => {
+    const headers = ['id', 'name', 'description', 'price', 'originalPrice', 'category', 'subcategory', 'gender', 'brand', 'material', 'sizes', 'colors', 'features', 'tags', 'rating', 'inStock', 'image'];
+
+    const csvRows = [
+      headers.join(','),
+      ...products.map(p => [
+        p.id,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${p.description.replace(/"/g, '""')}"`,
+        p.price,
+        p.originalPrice || '',
+        p.category,
+        p.subcategory,
+        p.gender,
+        p.brand || '',
+        p.material || '',
+        `"${(p.sizes || []).join(';')}"`,
+        `"${(p.colors || []).join(';')}"`,
+        `"${(p.features || []).join(';')}"`,
+        `"${(p.tags || []).join(';')}"`,
+        p.rating,
+        p.inStock,
+        p.image
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvRows], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `productos_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    showMessage('success', `Exportados ${products.length} productos`);
+  };
+
+  // Importar productos desde CSV
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+
+        let imported = 0;
+        setIsLoading(true);
+
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+
+          // Parse CSV line respecting quotes
+          const values: string[] = [];
+          let current = '';
+          let inQuotes = false;
+
+          for (const char of lines[i]) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+
+          const productData = {
+            name: values[1]?.replace(/^"|"$/g, '') || '',
+            description: values[2]?.replace(/^"|"$/g, '') || '',
+            price: parseFloat(values[3]) || 0,
+            originalPrice: values[4] ? parseFloat(values[4]) : undefined,
+            category: (values[5] as 'prendas' | 'calzados') || 'prendas',
+            subcategory: values[6] || '',
+            gender: (values[7] as 'hombre' | 'mujer' | 'unisex') || 'unisex',
+            brand: values[8] || undefined,
+            material: values[9] || undefined,
+            sizes: values[10]?.replace(/^"|"$/g, '').split(';').filter(Boolean) || [],
+            colors: values[11]?.replace(/^"|"$/g, '').split(';').filter(Boolean) || [],
+            features: values[12]?.replace(/^"|"$/g, '').split(';').filter(Boolean) || [],
+            tags: values[13]?.replace(/^"|"$/g, '').split(';').filter(Boolean) || [],
+            rating: parseFloat(values[14]) || 4.0,
+            inStock: values[15]?.toLowerCase() === 'true',
+            image: values[16] || '/placeholder.jpg'
+          };
+
+          if (productData.name) {
+            const success = await addProduct(productData);
+            if (success) imported++;
+          }
+        }
+
+        showMessage('success', `Importados ${imported} productos`);
+        await refreshProducts();
+      } catch (error) {
+        showMessage('error', 'Error al importar CSV');
+      } finally {
+        setIsLoading(false);
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-6">
       {/* Message Alert */}
       {message && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-100 text-green-700 border border-green-200' 
+        <div className={`p-4 rounded-lg ${message.type === 'success'
+            ? 'bg-green-100 text-green-700 border border-green-200'
             : 'bg-red-100 text-red-700 border border-red-200'
-        }`}>
+          }`}>
           {message.text}
         </div>
       )}
@@ -123,12 +229,34 @@ export default function AdminProducts() {
         </div>
         <div className="flex items-center space-x-3">
           <button
+            onClick={handleExportCSV}
+            disabled={isLoading || products.length === 0}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center space-x-2"
+            title="Exportar productos a CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
+
+          <label className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center space-x-2 cursor-pointer">
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Importar</span>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              className="hidden"
+              disabled={isLoading}
+            />
+          </label>
+
+          <button
             onClick={handleRefresh}
             disabled={isLoading}
             className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center space-x-2"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Actualizar</span>
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
 
           <button
@@ -192,7 +320,7 @@ export default function AdminProducts() {
             </div>
           </div>
         )}
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -222,8 +350,8 @@ export default function AdminProducts() {
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <img 
-                        src={product.image} 
+                      <img
+                        src={product.image}
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
@@ -238,11 +366,10 @@ export default function AdminProducts() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.category === 'prendas' 
-                        ? 'bg-blue-100 text-blue-800' 
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.category === 'prendas'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
-                    }`}>
+                      }`}>
                       {product.category === 'prendas' ? '👕 Prendas' : '👟 Calzados'}
                     </span>
                     <div className="text-xs text-gray-500 mt-1">
@@ -261,18 +388,17 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-xs text-gray-600">
-                      {product.sizes && product.sizes.length > 0 
+                      {product.sizes && product.sizes.length > 0
                         ? product.sizes.slice(0, 3).join(', ') + (product.sizes.length > 3 ? '...' : '')
                         : 'Sin talles'
                       }
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.inStock 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.inStock
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {product.inStock ? 'En Stock' : 'Agotado'}
                     </span>
                   </td>

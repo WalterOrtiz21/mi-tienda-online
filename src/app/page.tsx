@@ -11,6 +11,7 @@ import Sidebar from '@/components/ui/Sidebar';
 import ProductCard from '@/components/ui/ProductCard';
 import ProductModal from '@/components/ui/ProductModal';
 import Footer from '@/components/ui/Footer';
+import { ProductSkeletonGrid } from '@/components/ui/ProductSkeleton';
 import { ShoppingBag, Star, Shirt } from 'lucide-react';
 
 export default function Home() {
@@ -24,20 +25,52 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  // Nuevos estados para ordenamiento y filtro de precio
+  const [sortBy, setSortBy] = useState('default');
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
 
   // Datos calculados
   const categories = getCategories(products);
-  
+
   const filteredProducts = useMemo(() => {
-    const filtered = filterProducts(
-      products, 
-      selectedCategory, 
-      searchTerm, 
+    let filtered = filterProducts(
+      products,
+      selectedCategory,
+      searchTerm,
       selectedGender,
       selectedSize
     );
+
+    // Filtrar por precio
+    if (priceMin) {
+      filtered = filtered.filter(p => p.price >= Number(priceMin));
+    }
+    if (priceMax) {
+      filtered = filtered.filter(p => p.price <= Number(priceMax));
+    }
+
+    // Ordenar
+    switch (sortBy) {
+      case 'price-asc':
+        filtered = [...filtered].sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        filtered = [...filtered].sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        filtered = [...filtered].sort((a, b) => b.id - a.id);
+        break;
+      case 'rating':
+        filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+        break;
+      default:
+        // Mantener orden original (por relevancia)
+        break;
+    }
+
     return filtered;
-  }, [products, selectedCategory, searchTerm, selectedGender, selectedSize]);
+  }, [products, selectedCategory, searchTerm, selectedGender, selectedSize, sortBy, priceMin, priceMax]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -46,11 +79,11 @@ export default function Home() {
   // Reset página cuando cambian filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, selectedGender, selectedSize, searchTerm, itemsPerPage]);
+  }, [selectedCategory, selectedGender, selectedSize, searchTerm, itemsPerPage, sortBy, priceMin, priceMax]);
 
   const toggleFavorite = (id: number) => {
-    setFavorites(prev => 
-      prev.includes(id) 
+    setFavorites(prev =>
+      prev.includes(id)
         ? prev.filter(fav => fav !== id)
         : [...prev, id]
     );
@@ -65,18 +98,37 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando productos...</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <Header storeName="Cargando..." whatsappNumber="" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+            {/* Skeleton sidebar */}
+            <div className="hidden lg:block lg:w-64 flex-shrink-0">
+              <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+                <div className="h-8 bg-gray-200 rounded animate-pulse" />
+                <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+            {/* Skeleton products */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <ProductSkeletonGrid count={6} />
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
+      <Header
         storeName={settings.storeName}
         whatsappNumber={settings.whatsappNumber}
         storeIcon={settings.storeIcon}
@@ -96,7 +148,7 @@ export default function Home() {
           <p className="text-base sm:text-xl text-gray-800 mb-4 sm:mb-8 px-4">
             Descubre las últimas tendencias en prendas y calzados para toda la familia
           </p>
-          
+
           {/* Stats rápidas */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
             <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -141,6 +193,12 @@ export default function Home() {
             onGenderChange={setSelectedGender}
             selectedSize={selectedSize}
             onSizeChange={setSelectedSize}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            priceMin={priceMin}
+            priceMax={priceMax}
+            onPriceMinChange={setPriceMin}
+            onPriceMaxChange={setPriceMax}
           />
 
           {/* Main Content */}
@@ -156,7 +214,7 @@ export default function Home() {
                     {filteredProducts.length > itemsPerPage && ` • Página ${currentPage} de ${totalPages}`}
                   </p>
                 </div>
-                
+
                 {/* Selector de items per page - oculto en móvil */}
                 <div className="hidden sm:flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
@@ -174,7 +232,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Filtros activos */}
               <div className="flex flex-wrap gap-2 mt-3">
                 {selectedGender !== 'all' && (
@@ -206,14 +264,14 @@ export default function Home() {
 
             {/* Products Grid optimizado para móvil */}
             <div className={
-              viewMode === 'grid' 
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6' 
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'
                 : 'space-y-4 sm:space-y-6'
             }>
               {paginatedProducts.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
+                <ProductCard
+                  key={product.id}
+                  product={product}
                   isListView={viewMode === 'list'}
                   isFavorite={favorites.includes(product.id)}
                   onToggleFavorite={toggleFavorite}
@@ -251,7 +309,7 @@ export default function Home() {
                 >
                   Ant
                 </button>
-                
+
                 {/* Números de página - menos en móvil */}
                 {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                   let pageNum;
@@ -264,22 +322,21 @@ export default function Home() {
                   } else {
                     pageNum = currentPage - 1 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-2 sm:px-3 py-2 text-sm border rounded-md ${
-                        currentPage === pageNum
-                          ? 'border-blue-500 bg-blue-500 text-white'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
+                      className={`px-2 sm:px-3 py-2 text-sm border rounded-md ${currentPage === pageNum
+                        ? 'border-blue-500 bg-blue-500 text-white'
+                        : 'border-gray-300 hover:bg-gray-50'
+                        }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-                
+
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
@@ -293,12 +350,12 @@ export default function Home() {
         </div>
       </div>
 
-      <ProductModal 
-        product={selectedProduct} 
-        onClose={() => setSelectedProduct(null)} 
+      <ProductModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
       />
 
-      <Footer 
+      <Footer
         storeName={settings.storeName}
         whatsappNumber={settings.whatsappNumber}
       />

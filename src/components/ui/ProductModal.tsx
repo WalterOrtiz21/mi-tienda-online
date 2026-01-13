@@ -1,11 +1,12 @@
 // src/components/ui/ProductModal.tsx
 
 import { useState } from 'react';
-import { X, Star, MessageCircle, ChevronLeft, ChevronRight, Palette, Ruler } from 'lucide-react';
+import { X, Star, MessageCircle, ChevronLeft, ChevronRight, Palette, Ruler, ShoppingCart } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { formatPrice, calculateDiscount } from '@/lib/products';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
-import { useProducts } from '@/contexts/ProductsContext'; // ✅ Importar para obtener settings
+import { useProducts } from '@/contexts/ProductsContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface ProductModalProps {
   product: Product | null;
@@ -13,7 +14,8 @@ interface ProductModalProps {
 }
 
 export default function ProductModal({ product, onClose }: ProductModalProps) {
-  const { settings } = useProducts(); // ✅ Obtener settings con número de WhatsApp
+  const { settings } = useProducts();
+  const { addToCart, setIsCartOpen } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -23,11 +25,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   // Combinar imagen principal con imágenes adicionales
   const allImages = (() => {
     const images = [];
-    
+
     if (product.image) {
       images.push(product.image);
     }
-    
+
     if (product.images && product.images.length > 0) {
       product.images.forEach(img => {
         if (img && img !== product.image) {
@@ -35,7 +37,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         }
       });
     }
-    
+
     return images;
   })();
 
@@ -51,13 +53,19 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     setCurrentImageIndex(index);
   };
 
-  // ✅ USAR NÚMERO DINÁMICO DESDE SETTINGS
+  // USAR NÚMERO DINÁMICO DESDE SETTINGS
   const handleWhatsAppClick = () => {
     sendWhatsAppMessage(
-      product, 
+      product,
       { size: selectedSize, color: selectedColor },
-      settings.whatsappNumber // ✅ Pasar el número desde settings
+      settings.whatsappNumber
     );
+  };
+
+  // Agregar al carrito
+  const handleAddToCart = () => {
+    addToCart(product, selectedSize || product.sizes?.[0], selectedColor || product.colors?.[0]);
+    setIsCartOpen(true);
   };
 
   return (
@@ -71,19 +79,19 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="px-3 sm:px-6 pb-3 sm:pb-6 -mt-16 pt-16">
           <div className="md:flex md:space-x-6">
             {/* Image Section with Carousel */}
             <div className="md:w-1/2 mb-6 md:mb-0">
               {/* Main Image */}
               <div className="relative h-64 sm:h-80 md:h-96 mb-4">
-                <img 
-                  src={allImages[currentImageIndex]} 
+                <img
+                  src={allImages[currentImageIndex]}
                   alt={`${product.name} - ${currentImageIndex + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
-                
+
                 {/* Navigation Arrows */}
                 {allImages.length > 1 && (
                   <>
@@ -117,14 +125,13 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                     <button
                       key={index}
                       onClick={() => goToImage(index)}
-                      className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                        index === currentImageIndex 
-                          ? 'border-blue-500 ring-2 ring-blue-200' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
+                        ? 'border-blue-500 ring-2 ring-blue-200'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
-                      <img 
-                        src={image} 
+                      <img
+                        src={image}
                         alt={`${product.name} thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -133,7 +140,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 </div>
               )}
             </div>
-            
+
             {/* Product Info */}
             <div className="md:w-1/2">
               <div className="flex items-center justify-between mb-4">
@@ -151,9 +158,9 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   </span>
                 )}
               </div>
-              
+
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.name}</h2>
-              
+
               {/* Brand and Gender */}
               <div className="flex items-center space-x-4 mb-4">
                 {product.brand && (
@@ -165,22 +172,22 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   <strong>Para:</strong> {product.gender === 'mujer' ? '👩 Mujer' : product.gender === 'hombre' ? '👨 Hombre' : '👥 Unisex'}
                 </div>
               </div>
-              
+
               {/* Rating */}
               <div className="flex items-center mb-4">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
+                    <Star
+                      key={i}
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                     />
                   ))}
                   <span className="ml-2 text-sm text-gray-600">({product.rating})</span>
                 </div>
               </div>
-              
+
               <p className="text-gray-700 mb-6 text-sm sm:text-base">{product.description}</p>
-              
+
               {/* Size Selection */}
               {product.sizes && product.sizes.length > 0 && (
                 <div className="mb-6">
@@ -193,11 +200,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                       <button
                         key={size}
                         onClick={() => setSelectedSize(selectedSize === size ? '' : size)}
-                        className={`p-2 text-sm border rounded-lg transition-colors ${
-                          selectedSize === size
-                            ? 'border-blue-500 bg-blue-500 text-white'
-                            : 'border-gray-300 hover:border-gray-400 text-gray-700'
-                        }`}
+                        className={`p-2 text-sm border rounded-lg transition-colors ${selectedSize === size
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : 'border-gray-300 hover:border-gray-400 text-gray-700'
+                          }`}
                       >
                         {size}
                       </button>
@@ -205,7 +211,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Color Selection */}
               {product.colors && product.colors.length > 0 && (
                 <div className="mb-6">
@@ -218,11 +224,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                       <button
                         key={color}
                         onClick={() => setSelectedColor(selectedColor === color ? '' : color)}
-                        className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
-                          selectedColor === color
-                            ? 'border-blue-500 bg-blue-500 text-white'
-                            : 'border-gray-300 hover:border-gray-400 text-gray-700'
-                        }`}
+                        className={`px-3 py-2 text-sm border rounded-lg transition-colors ${selectedColor === color
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : 'border-gray-300 hover:border-gray-400 text-gray-700'
+                          }`}
                       >
                         {color}
                       </button>
@@ -230,7 +235,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Material */}
               {product.material && (
                 <div className="mb-6">
@@ -239,7 +244,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Features */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Características</h3>
@@ -251,47 +256,66 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   ))}
                 </div>
               </div>
-              
+
               {/* Price and Buy Button */}
-              <div className="sticky bottom-0 bg-white pt-6 border-t">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-2xl sm:text-3xl font-bold text-gray-900">{formatPrice(product.price)}</span>
+              <div className="sticky bottom-0 bg-white pt-4 border-t">
+                {/* Precio */}
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-2xl font-bold text-gray-900">
+                      {formatPrice(product.price)}
+                    </span>
                     {product.originalPrice && product.originalPrice > product.price && (
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-1">
-                        <span className="text-base sm:text-lg text-gray-500 line-through">{formatPrice(product.originalPrice)}</span>
-                        <span className="bg-red-500 text-white px-2 py-1 rounded text-xs sm:text-sm font-semibold">
-                          -{calculateDiscount(product.price, product.originalPrice)}% OFF
+                      <>
+                        <span className="text-base text-gray-400 line-through">
+                          {formatPrice(product.originalPrice)}
                         </span>
-                      </div>
+                        <span className="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-semibold">
+                          -{calculateDiscount(product.price, product.originalPrice)}%
+                        </span>
+                      </>
                     )}
                   </div>
+                </div>
+
+                {/* Botones - Grid de 2 columnas en móvil */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={!product.inStock}
+                    className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${product.inStock
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                  >
+                    <ShoppingCart className="w-5 h-5 flex-shrink-0" />
+                    <span className="truncate">Agregar al Carrito</span>
+                  </button>
                   <button
                     onClick={handleWhatsAppClick}
                     disabled={!product.inStock}
-                    className={`w-full sm:w-auto px-4 sm:px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base font-medium ${
-                      product.inStock
-                        ? 'bg-green-500 text-white hover:bg-green-600'
+                    className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium ${product.inStock
+                        ? 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
-                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>{product.inStock ? 'Comprar por WhatsApp' : 'No Disponible'}</span>
+                    <MessageCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="truncate">{product.inStock ? 'Comprar Ahora' : 'No Disponible'}</span>
                   </button>
                 </div>
-                
+
                 {/* Selected options summary */}
                 {(selectedSize || selectedColor) && (
-                  <div className="mt-3 text-xs sm:text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                  <div className="mt-3 text-xs text-gray-600 bg-gray-50 p-2 rounded text-center">
                     <strong>Seleccionado:</strong>
                     {selectedSize && ` Talle: ${selectedSize}`}
-                    {selectedColor && ` Color: ${selectedColor}`}
+                    {selectedColor && ` • Color: ${selectedColor}`}
                   </div>
                 )}
-                
-                {/* ✅ MOSTRAR NÚMERO DE WHATSAPP ACTUAL */}
-                <div className="mt-2 text-xs text-gray-500 text-center">
-                  📞 WhatsApp: {settings.whatsappNumber}
+
+                {/* Número de WhatsApp */}
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  📞 {settings.whatsappNumber}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 // src/components/ui/Sidebar.tsx
 
-import { Search, Grid, List, ChevronDown, ChevronRight, Filter } from 'lucide-react';
+import { Search, Grid, List, ChevronDown, ChevronRight, Filter, ArrowUpDown, DollarSign } from 'lucide-react';
 import { Category, ViewMode, Product } from '@/lib/types';
 import { useState } from 'react';
 
@@ -15,8 +15,15 @@ interface SidebarProps {
   products: Product[];
   selectedGender: string;
   onGenderChange: (gender: string) => void;
-  selectedSize: string; // ✅ Agregado
-  onSizeChange: (size: string) => void; // ✅ Agregado
+  selectedSize: string;
+  onSizeChange: (size: string) => void;
+  // Nuevas props para ordenamiento y precio
+  sortBy: string;
+  onSortChange: (sort: string) => void;
+  priceMin: string;
+  priceMax: string;
+  onPriceMinChange: (price: string) => void;
+  onPriceMaxChange: (price: string) => void;
 }
 
 export default function Sidebar({
@@ -31,11 +38,17 @@ export default function Sidebar({
   selectedGender,
   onGenderChange,
   selectedSize,
-  onSizeChange
+  onSizeChange,
+  sortBy,
+  onSortChange,
+  priceMin,
+  priceMax,
+  onPriceMinChange,
+  onPriceMaxChange
 }: SidebarProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  
+
   // Calcular conteos para filtros
   const genderCounts = {
     all: products.length,
@@ -55,7 +68,7 @@ export default function Sidebar({
     // Ordenar talles: primero números, luego letras
     const isANumber = !isNaN(Number(a));
     const isBNumber = !isNaN(Number(b));
-    
+
     if (isANumber && isBNumber) {
       return Number(a) - Number(b);
     } else if (isANumber && !isBNumber) {
@@ -67,7 +80,7 @@ export default function Sidebar({
       const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
       const aIndex = sizeOrder.indexOf(a);
       const bIndex = sizeOrder.indexOf(b);
-      
+
       if (aIndex !== -1 && bIndex !== -1) {
         return aIndex - bIndex;
       }
@@ -83,6 +96,61 @@ export default function Sidebar({
   // Componente de filtros
   const FiltersContent = () => (
     <>
+      {/* Ordenamiento */}
+      <div className="mb-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+          <ArrowUpDown className="w-4 h-4 mr-2" /> Ordenar por
+        </h3>
+        <select
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="default">Relevancia</option>
+          <option value="price-asc">Precio: Menor a Mayor</option>
+          <option value="price-desc">Precio: Mayor a Menor</option>
+          <option value="newest">Más Recientes</option>
+          <option value="rating">Mejor Valorados</option>
+        </select>
+      </div>
+
+      {/* Filtro de Precio */}
+      <div className="mb-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+          <DollarSign className="w-4 h-4 mr-2" /> Rango de Precio
+        </h3>
+        <div className="flex items-center space-x-2">
+          <input
+            type="number"
+            placeholder="Mín"
+            value={priceMin}
+            onChange={(e) => onPriceMinChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            min="0"
+          />
+          <span className="text-gray-400">-</span>
+          <input
+            type="number"
+            placeholder="Máx"
+            value={priceMax}
+            onChange={(e) => onPriceMaxChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            min="0"
+          />
+        </div>
+        {(priceMin || priceMax) && (
+          <button
+            onClick={() => {
+              onPriceMinChange('');
+              onPriceMaxChange('');
+            }}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+          >
+            Limpiar precio
+          </button>
+        )}
+      </div>
+
       {/* Filtro de Género */}
       <div className="mb-6">
         <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
@@ -98,11 +166,10 @@ export default function Sidebar({
             <button
               key={gender.id}
               onClick={() => onGenderChange(gender.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between text-sm ${
-                selectedGender === gender.id 
-                  ? 'bg-blue-500 text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between text-sm ${selectedGender === gender.id
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
               disabled={gender.count === 0}
             >
               <span className="flex items-center space-x-2">
@@ -124,11 +191,10 @@ export default function Sidebar({
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => onSizeChange('all')}
-              className={`px-2 py-2 text-xs rounded-lg transition-colors ${
-                selectedSize === 'all' 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-2 py-2 text-xs rounded-lg transition-colors ${selectedSize === 'all'
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               Todos
             </button>
@@ -136,11 +202,10 @@ export default function Sidebar({
               <button
                 key={size}
                 onClick={() => onSizeChange(selectedSize === size ? 'all' : size)}
-                className={`px-2 py-2 text-xs rounded-lg transition-colors ${
-                  selectedSize === size 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`px-2 py-2 text-xs rounded-lg transition-colors ${selectedSize === size
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
               >
                 {size}
               </button>
@@ -163,11 +228,11 @@ export default function Sidebar({
             <Filter className="w-5 h-5 text-gray-500" />
             <span className="font-medium">Filtros</span>
           </div>
-          <ChevronRight 
-            className={`w-5 h-5 transition-transform ${isMobileFiltersOpen ? 'rotate-90' : ''}`} 
+          <ChevronRight
+            className={`w-5 h-5 transition-transform ${isMobileFiltersOpen ? 'rotate-90' : ''}`}
           />
         </button>
-        
+
         {/* Mobile Filters Dropdown */}
         {isMobileFiltersOpen && (
           <div className="mt-2 bg-white rounded-lg shadow-md p-4">
@@ -201,11 +266,10 @@ export default function Sidebar({
                 <button
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                    selectedCategory === category.id 
-                      ? 'bg-black text-white' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${selectedCategory === category.id
+                    ? 'bg-black text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   <span className="flex items-center">
                     {category.name}
@@ -231,7 +295,7 @@ export default function Sidebar({
                 <ChevronRight className="w-5 h-5" />
               )}
             </button>
-            
+
             {isFiltersOpen && <FiltersContent />}
           </div>
 
@@ -241,17 +305,15 @@ export default function Sidebar({
             <div className="flex space-x-2">
               <button
                 onClick={() => onViewModeChange('grid')}
-                className={`p-2 rounded-lg flex-1 flex items-center justify-center ${
-                  viewMode === 'grid' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`p-2 rounded-lg flex-1 flex items-center justify-center ${viewMode === 'grid' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
               >
                 <Grid className="w-5 h-5" />
               </button>
               <button
                 onClick={() => onViewModeChange('list')}
-                className={`p-2 rounded-lg flex-1 flex items-center justify-center ${
-                  viewMode === 'list' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`p-2 rounded-lg flex-1 flex items-center justify-center ${viewMode === 'list' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
               >
                 <List className="w-5 h-5" />
               </button>
