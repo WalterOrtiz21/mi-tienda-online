@@ -56,14 +56,31 @@ CREATE TABLE store_settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. Insertar configuración inicial
+-- 3. Tabla de usuarios administradores
+DROP TABLE IF EXISTS admin_users;
+CREATE TABLE admin_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL COMMENT 'Hash bcrypt del password',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Insertar configuración inicial
 INSERT INTO store_settings (id, store_name, whatsapp_number) VALUES 
 (1, 'Annya Modas - Prendas & Calzados', '595981234567')
 ON DUPLICATE KEY UPDATE 
 store_name = VALUES(store_name),
 whatsapp_number = VALUES(whatsapp_number);
 
--- 4. Insertar productos de ejemplo
+-- 5. Insertar usuario admin inicial
+-- Password: admin123 (hasheado con bcrypt, cost 10)
+INSERT INTO admin_users (username, password_hash) VALUES 
+('admin', '$2b$10$iRgf5uvSFxhHI64LwCMDXuan2duqKHSX8/x6tV.QgqKf1zkaBSysK')
+ON DUPLICATE KEY UPDATE 
+password_hash = VALUES(password_hash);
+
+-- 6. Insertar productos de ejemplo
 
 -- PRENDAS
 INSERT INTO products (

@@ -18,16 +18,13 @@ export default function LoginForm() {
     setIsLoading(true);
     setError('');
 
-    // Simular delay de autenticación
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const success = await login(password);
 
-    const success = login(password);
-    
     if (!success) {
       setError('Contraseña incorrecta');
       setPassword('');
     }
-    
+
     setIsLoading(false);
   };
 

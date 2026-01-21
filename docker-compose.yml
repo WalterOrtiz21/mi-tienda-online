@@ -43,6 +43,23 @@ services:
       - '${APP_HOST_IP:-0.0.0.0}:${APP_PORT:-8080}:${APP_INTERNAL_PORT:-3000}'
     env_file:
       - ${ENV_FILE:-.env}
+    # 🔐 Configuración de Traefik para SSL automático
+    labels:
+      - "traefik.enable=true"
+      # Router HTTP -> redirige a HTTPS
+      - "traefik.http.routers.annyamodas-http.rule=Host(`annyamodas.com`) || Host(`www.annyamodas.com`)"
+      - "traefik.http.routers.annyamodas-http.entrypoints=web"
+      - "traefik.http.routers.annyamodas-http.middlewares=redirect-to-https"
+      # Router HTTPS con SSL
+      - "traefik.http.routers.annyamodas.rule=Host(`annyamodas.com`) || Host(`www.annyamodas.com`)"
+      - "traefik.http.routers.annyamodas.entrypoints=websecure"
+      - "traefik.http.routers.annyamodas.tls=true"
+      - "traefik.http.routers.annyamodas.tls.certresolver=letsencrypt"
+      # Servicio
+      - "traefik.http.services.annyamodas.loadbalancer.server.port=3000"
+      # Middleware de redirección HTTP -> HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     environment:
       # Configuración de aplicación
       NODE_ENV: ${NODE_ENV:-production}
@@ -88,6 +105,7 @@ services:
         condition: service_healthy
     networks:
       - ${NETWORK_NAME:-annyamodas-network}
+      - dokploy-network
     
     # 🎯 MAPEO DE VOLUMEN QUE FUNCIONA
     # Mapear el directorio del host que ya existe y tiene permisos
@@ -104,3 +122,5 @@ volumes:
 networks:
   annyamodas-network:
     driver: ${NETWORK_DRIVER:-bridge}
+  dokploy-network:
+    external: true

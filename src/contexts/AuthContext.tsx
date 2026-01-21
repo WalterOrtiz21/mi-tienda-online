@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
+  login: (password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -25,8 +25,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Configuración de seguridad
-const ADMIN_PASSWORD = "admin123"; // Cambiar por tu password
+// Configuración de sesión
 const SESSION_KEY = "admin_session";
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 horas en millisegundos
 
@@ -47,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (sessionData) {
           const { timestamp } = JSON.parse(sessionData);
           const now = Date.now();
-          
+
           // Verificar si la sesión no ha expirado
           if (now - timestamp < SESSION_DURATION) {
             setIsAuthenticated(true);
@@ -60,25 +59,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error checking session:', error);
         sessionStorage.removeItem(SESSION_KEY);
       }
-      
+
       setIsLoading(false);
     };
 
     checkSession();
   }, []);
 
-  const login = (password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
-      const sessionData = {
-        timestamp: Date.now(),
-        authenticated: true
-      };
-      
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-      setIsAuthenticated(true);
-      return true;
+  // Login usando API que valida contra BD con bcrypt
+  const login = async (password: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const sessionData = {
+          timestamp: Date.now(),
+          authenticated: true
+        };
+
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+        setIsAuthenticated(true);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error en login:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {

@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.10",
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.512.0",
     "mime-types": "^3.0.1",

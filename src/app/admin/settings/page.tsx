@@ -56,7 +56,12 @@ export default function AdminSettings() {
     }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
+    if (!formData.currentPassword) {
+      setMessage({ type: 'error', text: 'Ingresa tu contraseña actual' });
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage({ type: 'error', text: 'Las contraseñas no coinciden' });
       return;
@@ -67,19 +72,39 @@ export default function AdminSettings() {
       return;
     }
 
-    // Aquí iría la lógica para cambiar la contraseña
-    // Por ahora solo mostramos un mensaje
-    setMessage({ 
-      type: 'success', 
-      text: 'Para cambiar la contraseña, modifica ADMIN_PASSWORD en AuthContext.tsx' 
-    });
-    
-    setFormData(prev => ({
-      ...prev,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }));
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Contraseña actualizada correctamente' });
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }));
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al cambiar la contraseña' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error al cambiar la contraseña' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -90,9 +115,8 @@ export default function AdminSettings() {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-        }`}>
+        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}>
           {message.text}
         </div>
       )}
@@ -103,7 +127,7 @@ export default function AdminSettings() {
           <Store className="w-5 h-5 text-gray-500 mr-2" />
           <h2 className="text-lg font-semibold text-gray-900">Información de la Tienda</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -118,7 +142,7 @@ export default function AdminSettings() {
               placeholder="Tu Tienda Online"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Número de WhatsApp
@@ -165,7 +189,7 @@ export default function AdminSettings() {
           <Key className="w-5 h-5 text-gray-500 mr-2" />
           <h2 className="text-lg font-semibold text-gray-900">Seguridad</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -179,7 +203,7 @@ export default function AdminSettings() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nueva Contraseña
@@ -192,7 +216,7 @@ export default function AdminSettings() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Confirmar Contraseña
@@ -210,10 +234,11 @@ export default function AdminSettings() {
         <div className="mt-4">
           <button
             onClick={handlePasswordChange}
-            className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 flex items-center space-x-2"
+            disabled={isSaving}
+            className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center space-x-2"
           >
             <Key className="w-4 h-4" />
-            <span>Cambiar Contraseña</span>
+            <span>{isSaving ? 'Cambiando...' : 'Cambiar Contraseña'}</span>
           </button>
         </div>
       </div>
@@ -221,7 +246,7 @@ export default function AdminSettings() {
       {/* Información del Sistema Actualizada */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Sistema</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-medium text-gray-700">Versión:</span>
@@ -260,7 +285,7 @@ export default function AdminSettings() {
               </div>
               <div className="text-xs text-green-600 mt-1">Conectada y funcionando</div>
             </div>
-            
+
             <div className="bg-blue-50 p-3 rounded-lg">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
@@ -268,7 +293,7 @@ export default function AdminSettings() {
               </div>
               <div className="text-xs text-blue-600 mt-1">Todos los endpoints operativos</div>
             </div>
-            
+
             <div className="bg-purple-50 p-3 rounded-lg">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>

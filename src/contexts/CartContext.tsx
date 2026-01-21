@@ -2,8 +2,10 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { Product } from '@/lib/types';
+
+const CART_STORAGE_KEY = 'annyamodas_cart';
 
 export interface CartItem {
     product: Product;
@@ -41,6 +43,34 @@ interface CartProviderProps {
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     const [items, setItems] = useState<CartItem[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Cargar carrito desde localStorage al inicio
+    useEffect(() => {
+        try {
+            const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+            if (savedCart) {
+                const parsed = JSON.parse(savedCart);
+                if (Array.isArray(parsed)) {
+                    setItems(parsed);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading cart from localStorage:', error);
+        }
+        setIsInitialized(true);
+    }, []);
+
+    // Guardar carrito en localStorage cuando cambie
+    useEffect(() => {
+        if (isInitialized) {
+            try {
+                localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+            } catch (error) {
+                console.error('Error saving cart to localStorage:', error);
+            }
+        }
+    }, [items, isInitialized]);
 
     const addToCart = useCallback((product: Product, size?: string, color?: string) => {
         setItems(prev => {
