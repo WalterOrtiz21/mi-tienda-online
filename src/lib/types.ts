@@ -19,6 +19,7 @@ export interface Product {
   inStock: boolean;
   features: string[];
   tags: string[];
+  createdAt?: string;
 }
 
 export interface Category {

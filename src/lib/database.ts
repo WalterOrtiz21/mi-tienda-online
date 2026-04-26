@@ -43,6 +43,7 @@ const mapProductFromDB = (row: Record<string, unknown>): Product => ({
   inStock: Boolean(row.in_stock),
   features: toArray(row.features),
   tags: toArray(row.tags),
+  createdAt: row.created_at ? String(row.created_at) : undefined,
 });
 
 const productToRow = (p: Omit<Product, 'id'>) => ({

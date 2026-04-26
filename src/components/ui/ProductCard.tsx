@@ -6,17 +6,7 @@ import { Product } from '@/lib/types';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useCart } from '@/contexts/CartContext';
 import { formatGuarani } from '@/lib/whatsappMessage';
-
-const isOnOffer = (p: Product) => !!(p.originalPrice && p.originalPrice > p.price);
-
-const discountPercent = (p: Product) =>
-  isOnOffer(p) ? Math.round((1 - p.price / p.originalPrice!) * 100) : 0;
-
-const isNewArrival = (p: Product & { createdAt?: string }) => {
-  if (!p.createdAt) return false;
-  const days = (Date.now() - new Date(p.createdAt).getTime()) / 86400000;
-  return days <= 14;
-};
+import { isOnOffer, discountPercent, isNewArrival } from '@/lib/products';
 
 export default function ProductCard({
   product,

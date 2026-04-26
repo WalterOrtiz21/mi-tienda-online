@@ -192,3 +192,15 @@ export const getBestSellingProducts = (products: Product[], limit: number = 6): 
     .sort((a, b) => b.rating - a.rating)
     .slice(0, limit);
 };
+
+export const isOnOffer = (p: Product): boolean =>
+  !!(p.originalPrice && p.originalPrice > p.price);
+
+export const discountPercent = (p: Product): number =>
+  isOnOffer(p) ? Math.round((1 - p.price / p.originalPrice!) * 100) : 0;
+
+export const isNewArrival = (p: Product): boolean => {
+  if (!p.createdAt) return false;
+  const days = (Date.now() - new Date(p.createdAt).getTime()) / 86400000;
+  return days <= 14;
+};
