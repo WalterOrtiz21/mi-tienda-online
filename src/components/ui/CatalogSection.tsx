@@ -50,10 +50,7 @@ export default function CatalogSection({
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}
-        onCategoryChange={(c) => {
-          setSelectedCategory(c);
-          setSelectedGender('all');
-        }}
+        onCategoryChange={setSelectedCategory}
         selectedGender={selectedGender}
         onGenderChange={setSelectedGender}
         searchTerm={searchTerm}
