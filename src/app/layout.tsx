@@ -1,16 +1,24 @@
-// src/app/layout.tsx
-
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { ProductsProvider } from '@/contexts/ProductsContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'Tu Tienda Online - Perfumes y Moda',
-  description: 'Los mejores perfumes y moda al mejor precio',
+  title: 'Annya Modas',
+  description: 'Prendas y calzados — boutique online',
 };
 
 export default function RootLayout({
@@ -19,12 +27,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className={inter.className}>
+    <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
+      <body>
         <AuthProvider>
-          <ProductsProvider>
-            {children}
-          </ProductsProvider>
+          <ProductsProvider>{children}</ProductsProvider>
         </AuthProvider>
       </body>
     </html>
