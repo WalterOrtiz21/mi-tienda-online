@@ -20,6 +20,7 @@ export interface Product {
   features: string[];
   tags: string[];
   createdAt?: string;
+  archived?: boolean;
 }
 
 export interface Category {

@@ -1,106 +1,128 @@
-// src/app/admin/layout.tsx
-
 'use client';
 
 import { useState } from 'react';
-import { Package, Settings, Home, BarChart3, LogOut, User } from 'lucide-react';
+import {
+  Menu,
+  X,
+  Package,
+  Settings,
+  Image as ImageIcon,
+  BarChart3,
+  Home,
+  LogOut,
+} from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Wordmark from '@/components/ui/Wordmark';
 
-interface AdminLayoutProps {
+const navigation = [
+  { name: 'Dashboard', href: '/admin', icon: BarChart3 },
+  { name: 'Productos', href: '/admin/products', icon: Package },
+  { name: 'Imágenes', href: '/admin/images', icon: ImageIcon },
+  { name: 'Configuración', href: '/admin/settings', icon: Settings },
+  { name: 'Ver tienda', href: '/', icon: Home, external: true },
+];
+
+export default function AdminLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+}) {
+  const [open, setOpen] = useState(false);
   const { logout } = useAuth();
-
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3 },
-    { name: 'Productos', href: '/admin/products', icon: Package },
-    { name: 'Configuración', href: '/admin/settings', icon: Settings },
-    { name: 'Ver Tienda', href: '/', icon: Home },
-  ];
+  const pathname = usePathname();
 
   const handleLogout = () => {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      logout();
-    }
+    if (confirm('¿Cerrar sesión?')) logout();
   };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-[color:var(--color-cream)]">
+        {/* Backdrop mobile */}
+        {open && (
+          <div
+            className="fixed inset-0 bg-black/40 z-30 md:hidden"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+        )}
+
         {/* Sidebar */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'}`}>
-          <div className="flex items-center justify-center h-16 bg-gray-800">
-            <h1 className="text-white text-xl font-bold">Admin Panel</h1>
+        <aside
+          className={`fixed top-0 left-0 z-40 h-full w-64 bg-[color:var(--color-cocoa)] text-[color:var(--color-shell)] transform transition-transform md:translate-x-0 ${
+            open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}
+        >
+          <div className="h-16 px-5 flex items-center justify-between border-b border-[color:var(--color-shell)]/10">
+            <Wordmark
+              size="md"
+              href={null}
+              className="!text-[color:var(--color-shell)]"
+            />
+            <button
+              className="md:hidden p-2"
+              onClick={() => setOpen(false)}
+              aria-label="Cerrar menú"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          
-          <nav className="mt-8">
-            <div className="px-4 space-y-2">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
-                  >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
-            
-            {/* Logout Button */}
-            <div className="absolute bottom-4 left-4 right-4">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
-              >
-                <LogOut className="w-5 h-5 mr-3" />
-                Cerrar Sesión
-              </button>
-            </div>
-          </nav>
-        </div>
 
-        {/* Main Content */}
-        <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
-          {/* Top Header */}
-          <header className="bg-white shadow-sm border-b">
-            <div className="flex items-center justify-between px-6 py-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-              >
-                <Package className="w-6 h-6" />
-              </button>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <User className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm text-gray-600">Administrador</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-red-600"
-                  title="Cerrar sesión"
+          <nav className="p-3">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const active =
+                !item.external &&
+                (item.href === '/admin'
+                  ? pathname === '/admin'
+                  : pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-md mb-1 text-sm tracking-wide transition-colors ${
+                    active
+                      ? 'bg-[color:var(--color-shell)]/15 text-[color:var(--color-shell)]'
+                      : 'text-[color:var(--color-cream)]/80 hover:bg-[color:var(--color-shell)]/5'
+                  }`}
                 >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </header>
+                  <Icon className="w-5 h-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
 
-          {/* Page Content */}
-          <main className="p-6">
-            {children}
-          </main>
-        </div>
+          <div className="absolute bottom-3 left-3 right-3">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm text-[color:var(--color-cream)]/80 hover:bg-[color:var(--color-terra)]/30 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              Cerrar sesión
+            </button>
+          </div>
+        </aside>
+
+        {/* Header mobile */}
+        <header className="md:hidden h-14 sticky top-0 z-20 bg-[color:var(--color-shell)] border-b border-[color:var(--color-cream)] px-4 flex items-center justify-between">
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menú"
+            className="p-2 -ml-2"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <Wordmark size="sm" href={null} />
+          <span className="w-10" />
+        </header>
+
+        {/* Content */}
+        <main className="md:ml-64 p-4 md:p-8">{children}</main>
       </div>
     </ProtectedRoute>
   );

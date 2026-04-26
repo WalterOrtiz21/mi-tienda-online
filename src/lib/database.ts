@@ -44,6 +44,7 @@ const mapProductFromDB = (row: Record<string, unknown>): Product => ({
   features: toArray(row.features),
   tags: toArray(row.tags),
   createdAt: row.created_at ? String(row.created_at) : undefined,
+  archived: Boolean(row.archived ?? false),
 });
 
 const productToRow = (p: Omit<Product, 'id'>) => ({
@@ -64,17 +65,20 @@ const productToRow = (p: Omit<Product, 'id'>) => ({
   in_stock: p.inStock,
   features: p.features ?? [],
   tags: p.tags ?? [],
+  archived: p.archived ?? false,
 });
 
 // ============================================================
 // productAPI
 // ============================================================
 export const productAPI = {
-  async getAll(): Promise<Product[]> {
-    const { data, error } = await supabase
+  async getAll(opts: { includeArchived?: boolean } = {}): Promise<Product[]> {
+    let query = supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
+    if (!opts.includeArchived) query = query.eq('archived', false);
+    const { data, error } = await query;
     if (error) {
       console.error('Error fetching products:', error);
       return [];
@@ -95,12 +99,17 @@ export const productAPI = {
     return data ? mapProductFromDB(data) : null;
   },
 
-  async getByCategory(category: 'prendas' | 'calzados'): Promise<Product[]> {
-    const { data, error } = await supabase
+  async getByCategory(
+    category: 'prendas' | 'calzados',
+    opts: { includeArchived?: boolean } = {}
+  ): Promise<Product[]> {
+    let query = supabase
       .from('products')
       .select('*')
       .eq('category', category)
       .order('created_at', { ascending: false });
+    if (!opts.includeArchived) query = query.eq('archived', false);
+    const { data, error } = await query;
     if (error) {
       console.error('Error fetching products by category:', error);
       return [];
@@ -155,8 +164,10 @@ export const productAPI = {
     maxPrice?: number;
     searchTerm?: string;
     inStock?: boolean;
+    includeArchived?: boolean;
   }): Promise<Product[]> {
     let query = supabase.from('products').select('*');
+    if (!filters.includeArchived) query = query.eq('archived', false);
 
     if (filters.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);

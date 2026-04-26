@@ -3,10 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productAPI } from '@/lib/database';
 
-// GET - Obtener todos los productos
-export async function GET() {
+// GET - Obtener todos los productos. ?includeArchived=true para admin.
+export async function GET(request: NextRequest) {
   try {
-    const products = await productAPI.getAll();
+    const { searchParams } = new URL(request.url);
+    const includeArchived = searchParams.get('includeArchived') === 'true';
+    const products = await productAPI.getAll({ includeArchived });
     return NextResponse.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);

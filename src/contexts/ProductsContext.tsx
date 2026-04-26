@@ -20,6 +20,7 @@ interface ProductsContextType {
   deleteProduct: (id: number) => Promise<boolean>;
   updateSettings: (settings: StoreSettings) => Promise<boolean>;
   refreshProducts: () => Promise<void>;
+  loadAll: (includeArchived?: boolean) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -85,6 +86,21 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
       }
     } catch (error) {
       console.error('Error refreshing products:', error);
+    }
+  };
+
+  const loadAll = async (includeArchived = false) => {
+    try {
+      setIsLoading(true);
+      const url = includeArchived
+        ? '/api/products?includeArchived=true'
+        : '/api/products';
+      const res = await fetch(url);
+      if (res.ok) setProducts(await res.json());
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -178,6 +194,7 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
     deleteProduct,
     updateSettings,
     refreshProducts,
+    loadAll,
     isLoading
   };
 

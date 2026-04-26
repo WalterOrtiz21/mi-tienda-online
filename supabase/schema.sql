@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   in_stock        BOOLEAN DEFAULT TRUE,
   features        JSONB,
   tags            JSONB,
+  archived        BOOLEAN NOT NULL DEFAULT FALSE,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -34,6 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_products_in_stock   ON public.products(in_stock);
 CREATE INDEX IF NOT EXISTS idx_products_price      ON public.products(price);
 CREATE INDEX IF NOT EXISTS idx_products_rating     ON public.products(rating);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON public.products(created_at);
+CREATE INDEX IF NOT EXISTS idx_products_archived   ON public.products(archived);
 
 -- ============================================================
 -- 2. TABLA store_settings
