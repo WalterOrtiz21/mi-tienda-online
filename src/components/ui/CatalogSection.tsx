@@ -26,10 +26,16 @@ export default function CatalogSection({
   const [page, setPage] = useState(1);
   const perPage = 12;
 
-  // Sincronizar cuando cambia la URL (ej. click en nav del header)
+  // Sincronizar cuando cambia la URL (ej. click en nav del header).
+  // Cambiar de categoría limpia el filtro de género salvo que la URL lo
+  // especifique explícitamente.
   useEffect(() => {
-    if (urlCat) setSelectedCategory(urlCat);
-    if (urlGender) setSelectedGender(urlGender);
+    if (urlCat) {
+      setSelectedCategory(urlCat);
+      setSelectedGender(urlGender ?? 'all');
+    } else if (urlGender) {
+      setSelectedGender(urlGender);
+    }
   }, [urlCat, urlGender]);
 
   const categories: Category[] = useMemo(() => getCategories(products), [products]);
@@ -50,7 +56,10 @@ export default function CatalogSection({
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
+        onCategoryChange={(c) => {
+          setSelectedCategory(c);
+          setSelectedGender('all');
+        }}
         selectedGender={selectedGender}
         onGenderChange={setSelectedGender}
         searchTerm={searchTerm}
