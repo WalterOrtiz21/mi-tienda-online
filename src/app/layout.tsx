@@ -5,6 +5,8 @@ import { ProductsProvider } from '@/contexts/ProductsContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import ToastViewport from '@/components/ui/ToastViewport';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,7 +36,12 @@ export default function RootLayout({
         <AuthProvider>
           <ProductsProvider>
             <FavoritesProvider>
-              <CartProvider>{children}</CartProvider>
+              <CartProvider>
+                <ToastProvider>
+                  {children}
+                  <ToastViewport />
+                </ToastProvider>
+              </CartProvider>
             </FavoritesProvider>
           </ProductsProvider>
         </AuthProvider>

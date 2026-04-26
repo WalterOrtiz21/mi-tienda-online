@@ -5,6 +5,7 @@ import { Heart, ShoppingBag } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/contexts/ToastContext';
 import { formatGuarani } from '@/lib/whatsappMessage';
 import { isOnOffer, discountPercent, isNewArrival } from '@/lib/products';
 
@@ -21,6 +22,7 @@ export default function ProductCard({
 }) {
   const { isFavorite: isFav, toggle } = useFavorites();
   const { addItem } = useCart();
+  const { show: showToast } = useToast();
   const [hovered, setHovered] = useState(false);
 
   const onOffer = isOnOffer(product);
@@ -36,11 +38,17 @@ export default function ProductCard({
     e.stopPropagation();
     const defaultSize = product.sizes?.[0];
     addItem(product, { size: defaultSize });
+    showToast({ message: `${product.name} agregado al carrito` });
   };
 
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const wasFav = fav;
     toggle(product.id);
+    showToast({
+      message: wasFav ? 'Quitado de favoritos' : 'Guardado en favoritos',
+      durationMs: 1500,
+    });
   };
 
   return (

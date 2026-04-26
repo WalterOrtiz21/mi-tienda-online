@@ -20,7 +20,7 @@ export default function OffersSection({
   if (offers.length === 0) return null;
 
   return (
-    <section className="py-16 bg-[color:var(--color-cream)]">
+    <section id="ofertas" className="scroll-mt-20 py-16 bg-[color:var(--color-cream)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="eyebrow">Solo esta semana</p>
         <div className="flex items-baseline justify-between mb-8">

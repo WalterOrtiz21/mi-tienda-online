@@ -76,6 +76,7 @@ export default function FilterBar({
         <div className="ml-auto flex items-center gap-2 bg-[color:var(--color-shell)] rounded-full px-3 py-1.5 border border-[color:var(--color-cream)]">
           <Search className="w-4 h-4 text-[color:var(--color-taupe)]" />
           <input
+            id="catalog-search"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Buscar"

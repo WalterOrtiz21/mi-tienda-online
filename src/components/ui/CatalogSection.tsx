@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ShoppingBag } from 'lucide-react';
 import { Product, Category } from '@/lib/types';
 import { filterProducts, getCategories } from '@/lib/products';
@@ -14,12 +15,22 @@ export default function CatalogSection({
   products: Product[];
   onViewDetails: (p: Product) => void;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedGender, setSelectedGender] = useState('all');
+  const searchParams = useSearchParams();
+  const urlCat = searchParams.get('cat');
+  const urlGender = searchParams.get('gender');
+
+  const [selectedCategory, setSelectedCategory] = useState(urlCat ?? 'all');
+  const [selectedGender, setSelectedGender] = useState(urlGender ?? 'all');
   const [selectedSize] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 12;
+
+  // Sincronizar cuando cambia la URL (ej. click en nav del header)
+  useEffect(() => {
+    if (urlCat) setSelectedCategory(urlCat);
+    if (urlGender) setSelectedGender(urlGender);
+  }, [urlCat, urlGender]);
 
   const categories: Category[] = useMemo(() => getCategories(products), [products]);
 
@@ -35,7 +46,7 @@ export default function CatalogSection({
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
 
   return (
-    <section id="catalogo" className="pb-20">
+    <section id="catalogo" className="scroll-mt-20 pb-20">
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}

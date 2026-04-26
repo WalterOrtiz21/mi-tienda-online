@@ -6,6 +6,7 @@ import { Product } from '@/lib/types';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { useProducts } from '@/contexts/ProductsContext';
 import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/contexts/ToastContext';
 import { formatGuarani } from '@/lib/whatsappMessage';
 
 interface ProductModalProps {
@@ -16,6 +17,7 @@ interface ProductModalProps {
 export default function ProductModal({ product, onClose }: ProductModalProps) {
   const { settings } = useProducts();
   const { addItem } = useCart();
+  const { show: showToast } = useToast();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -49,6 +51,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
       size: selectedSize || undefined,
       color: selectedColor || undefined,
     });
+    showToast({ message: `${product.name} agregado al carrito` });
   };
 
   const onOffer = product.originalPrice && product.originalPrice > product.price;
