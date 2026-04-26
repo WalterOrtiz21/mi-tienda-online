@@ -73,17 +73,18 @@ const productToRow = (p: Omit<Product, 'id'>) => ({
 // ============================================================
 export const productAPI = {
   async getAll(opts: { includeArchived?: boolean } = {}): Promise<Product[]> {
-    let query = supabase
+    // Filtro de archivados se aplica en JS para tolerar entornos donde
+    // todavía no se corrió la migration que agrega la columna.
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!opts.includeArchived) query = query.eq('archived', false);
-    const { data, error } = await query;
     if (error) {
       console.error('Error fetching products:', error);
       return [];
     }
-    return (data ?? []).map(mapProductFromDB);
+    const all = (data ?? []).map(mapProductFromDB);
+    return opts.includeArchived ? all : all.filter((p) => !p.archived);
   },
 
   async getById(id: number): Promise<Product | null> {
@@ -103,18 +104,17 @@ export const productAPI = {
     category: 'prendas' | 'calzados',
     opts: { includeArchived?: boolean } = {}
   ): Promise<Product[]> {
-    let query = supabase
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('category', category)
       .order('created_at', { ascending: false });
-    if (!opts.includeArchived) query = query.eq('archived', false);
-    const { data, error } = await query;
     if (error) {
       console.error('Error fetching products by category:', error);
       return [];
     }
-    return (data ?? []).map(mapProductFromDB);
+    const all = (data ?? []).map(mapProductFromDB);
+    return opts.includeArchived ? all : all.filter((p) => !p.archived);
   },
 
   async create(product: Omit<Product, 'id'>): Promise<Product | null> {
@@ -167,7 +167,6 @@ export const productAPI = {
     includeArchived?: boolean;
   }): Promise<Product[]> {
     let query = supabase.from('products').select('*');
-    if (!filters.includeArchived) query = query.eq('archived', false);
 
     if (filters.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
@@ -204,7 +203,8 @@ export const productAPI = {
       console.error('Error searching products:', error);
       return [];
     }
-    return (data ?? []).map(mapProductFromDB);
+    const all = (data ?? []).map(mapProductFromDB);
+    return filters.includeArchived ? all : all.filter((p) => !p.archived);
   },
 
   async getStats() {
