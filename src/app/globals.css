@@ -1,50 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paleta */
+  --color-shell:  #faf8f5;
+  --color-cream:  #f4ebe1;
+  --color-tan:    #c9a87c;
+  --color-taupe:  #8b7d6b;
+  --color-cocoa:  #4a3729;
+  --color-terra:  #a8453a;
+
+  /* Texto */
+  --text-primary:   var(--color-cocoa);
+  --text-secondary: var(--color-taupe);
+  --text-inverse:   var(--color-shell);
+
+  /* Fondos */
+  --bg-primary:   var(--color-shell);
+  --bg-secondary: var(--color-cream);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  /* Sombras */
+  --shadow-card: 0 8px 24px rgba(74, 55, 41, .08);
+  --shadow-lg:   0 16px 40px rgba(74, 55, 41, .12);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-shell:  var(--color-shell);
+  --color-cream:  var(--color-cream);
+  --color-tan:    var(--color-tan);
+  --color-taupe:  var(--color-taupe);
+  --color-cocoa:  var(--color-cocoa);
+  --color-terra:  var(--color-terra);
+  --font-display: var(--font-playfair);
+  --font-sans:    var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* En src/app/globals.css agregar: */
 @layer base {
-  * {
-    color-scheme: light !important;
+  * { color-scheme: light; }
+
+  html, body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-inter), system-ui, sans-serif;
   }
-  
-  body {
-    color: #111827 !important;
-    background-color: #f9fafb !important;
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 500;
+    color: var(--text-primary);
   }
-  
-  .text-gray-900 {
-    color: #111827 !important;
-  }
-  
-  .text-gray-800 {
-    color: #1f2937 !important;
-  }
-  
-  .text-gray-700 {
-    color: #374151 !important;
+
+  .font-display { font-family: var(--font-playfair), Georgia, serif; }
+  .eyebrow {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
   }
 }
