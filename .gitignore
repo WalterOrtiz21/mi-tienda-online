@@ -102,3 +102,7 @@ database-backup-*
 # Mantener estructura pero ignorar contenido sensible
 CONTENT/**
 !CONTENT/.gitkeep
+
+# Brainstorming visual companion
+.superpowers/
+
