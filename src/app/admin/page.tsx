@@ -1,273 +1,149 @@
-// src/app/admin/page.tsx
-
 'use client';
 
-import { Package, ShoppingBag, TrendingUp, DollarSign } from 'lucide-react';
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { Package, Image as ImageIcon, Settings, Plus, AlertTriangle, Archive } from 'lucide-react';
 import { useProducts } from '@/contexts/ProductsContext';
-import { formatPrice } from '@/lib/products';
+import { formatGuarani } from '@/lib/whatsappMessage';
 
 export default function AdminDashboard() {
-  const { products, settings, isLoading } = useProducts();
+  const { products, settings, loadAll, isLoading } = useProducts();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    loadAll(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const total = products.filter((p) => !p.archived).length;
+  const inStock = products.filter((p) => !p.archived && p.inStock).length;
+  const outOfStock = products.filter((p) => !p.archived && !p.inStock);
+  const archived = products.filter((p) => p.archived).length;
+
+  if (isLoading && products.length === 0) {
+    return <p className="text-[color:var(--color-taupe)]">Cargando…</p>;
   }
-
-  const totalProducts = products.length;
-  const inStockProducts = products.filter(p => p.inStock).length;
-  const outOfStockProducts = totalProducts - inStockProducts;
-  const totalValue = products.reduce((sum, p) => sum + p.price, 0);
-  const averagePrice = totalProducts > 0 ? totalValue / totalProducts : 0;
-
-  // Productos por categoría actualizada
-  const prendasCount = products.filter(p => p.category === 'prendas').length;
-  const calzadosCount = products.filter(p => p.category === 'calzados').length;
-
-  // Productos con descuento
-  const productsWithDiscount = products.filter(p => 
-    p.originalPrice && p.originalPrice > p.price
-  ).length;
-
-  // Productos por género
-  const mujerCount = products.filter(p => p.gender === 'mujer').length;
-  const hombreCount = products.filter(p => p.gender === 'hombre').length;
-  const unisexCount = products.filter(p => p.gender === 'unisex').length;
-
-  const stats = [
-    {
-      name: 'Total Productos',
-      value: totalProducts,
-      icon: Package,
-      color: 'bg-blue-500',
-      description: `${prendasCount} prendas, ${calzadosCount} calzados`
-    },
-    {
-      name: 'En Stock',
-      value: inStockProducts,
-      icon: ShoppingBag,
-      color: 'bg-green-500',
-      description: `${outOfStockProducts} agotados`
-    },
-    {
-      name: 'Con Descuento',
-      value: productsWithDiscount,
-      icon: TrendingUp,
-      color: 'bg-orange-500',
-      description: `${Math.round((productsWithDiscount/totalProducts)*100) || 0}% del total`
-    },
-    {
-      name: 'Precio Promedio',
-      value: formatPrice(averagePrice),
-      icon: DollarSign,
-      color: 'bg-purple-500',
-      description: `Valor total: ${formatPrice(totalValue)}`
-    }
-  ];
-
-  const recentProducts = products
-    .sort((a, b) => b.id - a.id) // Ordenar por ID descendente (más recientes primero)
-    .slice(0, 5);
-
-  const topRatedProducts = products
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 3);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">
-          Resumen de {settings.storeName} - WhatsApp: {settings.whatsappNumber}
+        <h1 className="font-display text-2xl md:text-3xl text-[color:var(--color-cocoa)]">
+          Hola
+        </h1>
+        <p className="text-sm text-[color:var(--color-taupe)]">
+          {settings.storeName} · WhatsApp +{settings.whatsappNumber}
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.name} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Kpi label="Activos" value={total} tone="cocoa" icon={Package} />
+        <Kpi label="En stock" value={inStock} tone="cream" icon={Package} />
+        <Kpi label="Archivados" value={archived} tone="taupe" icon={Archive} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Products */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Productos Recientes</h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {recentProducts.length > 0 ? (
-              recentProducts.map((product) => (
-                <div key={product.id} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div className="ml-4">
-                      <h3 className="text-sm font-medium text-gray-900">{product.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {product.category} • {product.brand} • ID: {product.id}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium text-gray-900">
-                      {formatPrice(product.price)}
-                    </span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      product.inStock 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.inStock ? 'En Stock' : 'Agotado'}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="px-6 py-8 text-center text-gray-500">
-                No hay productos aún. ¡Agrega tu primer producto!
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Atajos */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Shortcut href="/admin/products/new" icon={Plus} label="Nuevo producto" highlight />
+        <Shortcut href="/admin/images" icon={ImageIcon} label="Imágenes" />
+        <Shortcut href="/admin/settings" icon={Settings} label="Configuración" />
+      </div>
 
-        {/* Top Rated Products */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Mejor Valorados</h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {topRatedProducts.length > 0 ? (
-              topRatedProducts.map((product, index) => (
-                <div key={product.id} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${
-                      index === 0 ? 'bg-yellow-500' : 
-                      index === 1 ? 'bg-gray-400' : 'bg-orange-600'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-10 h-10 rounded-lg object-cover ml-3"
-                    />
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-gray-900">{product.name}</h3>
-                      <p className="text-sm text-gray-500">⭐ {product.rating} • {product.category}</p>
-                    </div>
+      {/* Sin stock */}
+      <section className="bg-[color:var(--color-shell)] rounded-lg shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-[color:var(--color-cream)] flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-[color:var(--color-terra)]" />
+          <h2 className="font-display text-lg">Sin stock</h2>
+          {outOfStock.length > 0 && (
+            <span className="ml-auto text-xs text-[color:var(--color-taupe)]">
+              {outOfStock.length} producto{outOfStock.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        {outOfStock.length === 0 ? (
+          <p className="px-5 py-8 text-center text-[color:var(--color-taupe)] text-sm">
+            Todos los productos activos están en stock.
+          </p>
+        ) : (
+          <ul className="divide-y divide-[color:var(--color-cream)]">
+            {outOfStock.slice(0, 8).map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/admin/products/${p.id}/edit`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-[color:var(--color-cream)]/40"
+                >
+                  <img
+                    src={p.image}
+                    alt=""
+                    className="w-10 h-12 object-cover rounded bg-[color:var(--color-cream)]"
+                    loading="lazy"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.name}</p>
+                    <p className="text-xs text-[color:var(--color-taupe)] capitalize">
+                      {p.category} · {p.subcategory}
+                    </p>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatPrice(product.price)}
+                  <span className="text-sm text-[color:var(--color-taupe)]">
+                    {formatGuarani(p.price)}
                   </span>
-                </div>
-              ))
-            ) : (
-              <div className="px-6 py-8 text-center text-gray-500">
-                No hay productos para mostrar
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Category Distribution */}
-      {totalProducts > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-500 rounded mr-3"></div>
-                <span className="text-sm font-medium">👕 Prendas</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{prendasCount}</span>
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full" 
-                    style={{ width: `${(prendasCount / totalProducts) * 100}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm text-gray-500 w-12 text-right">
-                  {Math.round((prendasCount / totalProducts) * 100)}%
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-green-500 rounded mr-3"></div>
-                <span className="text-sm font-medium">👟 Calzados</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{calzadosCount}</span>
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full" 
-                    style={{ width: `${(calzadosCount / totalProducts) * 100}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm text-gray-500 w-12 text-right">
-                  {Math.round((calzadosCount / totalProducts) * 100)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Gender Distribution */}
-      {totalProducts > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Género</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-pink-600">{mujerCount}</div>
-              <div className="text-sm text-gray-600">👩 Para Mujer</div>
-              <div className="text-xs text-gray-500">
-                {Math.round((mujerCount / totalProducts) * 100)}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{hombreCount}</div>
-              <div className="text-sm text-gray-600">👨 Para Hombre</div>
-              <div className="text-xs text-gray-500">
-                {Math.round((hombreCount / totalProducts) * 100)}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{unisexCount}</div>
-              <div className="text-sm text-gray-600">👥 Unisex</div>
-              <div className="text-xs text-gray-500">
-                {Math.round((unisexCount / totalProducts) * 100)}%
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  tone,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  tone: 'cocoa' | 'cream' | 'taupe';
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  const styles: Record<string, string> = {
+    cocoa: 'bg-[color:var(--color-cocoa)] text-[color:var(--color-shell)]',
+    cream: 'bg-[color:var(--color-shell)] text-[color:var(--color-cocoa)] border border-[color:var(--color-cream)]',
+    taupe: 'bg-[color:var(--color-taupe)] text-[color:var(--color-shell)]',
+  };
+  return (
+    <div className={`rounded-lg p-4 ${styles[tone]}`}>
+      <div className="flex items-center gap-2 mb-2 opacity-90">
+        <Icon className="w-4 h-4" />
+        <span className="text-xs uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="font-display text-3xl">{value}</p>
+    </div>
+  );
+}
+
+function Shortcut({
+  href,
+  label,
+  icon: Icon,
+  highlight,
+}: {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  highlight?: boolean;
+}) {
+  const cls = highlight
+    ? 'bg-[color:var(--color-cocoa)] text-[color:var(--color-shell)]'
+    : 'bg-[color:var(--color-shell)] text-[color:var(--color-cocoa)] border border-[color:var(--color-cream)]';
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-4 py-3 rounded-md text-sm uppercase tracking-wider hover:opacity-90 ${cls}`}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </Link>
   );
 }
