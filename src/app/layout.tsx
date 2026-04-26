@@ -3,6 +3,8 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { ProductsProvider } from '@/contexts/ProductsContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,7 +32,11 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
       <body>
         <AuthProvider>
-          <ProductsProvider>{children}</ProductsProvider>
+          <ProductsProvider>
+            <FavoritesProvider>
+              <CartProvider>{children}</CartProvider>
+            </FavoritesProvider>
+          </ProductsProvider>
         </AuthProvider>
       </body>
     </html>

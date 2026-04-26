@@ -3,6 +3,7 @@
     "lib": ["dom", "dom.iterable", "ES2017"],
     "allowJs": true,
     "skipLibCheck": true,
+    "types": ["vitest/globals"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,

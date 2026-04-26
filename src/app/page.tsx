@@ -6,7 +6,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { Product, ViewMode } from '@/lib/types';
 import { getCategories, filterProducts } from '@/lib/products';
 import { useProducts } from '@/contexts/ProductsContext';
+import { useCart } from '@/contexts/CartContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import Header from '@/components/ui/Header';
+import CartDrawer from '@/components/ui/CartDrawer';
 import Sidebar from '@/components/ui/Sidebar';
 import ProductCard from '@/components/ui/ProductCard';
 import ProductModal from '@/components/ui/ProductModal';
@@ -15,6 +18,9 @@ import { ShoppingBag, Star, Shirt } from 'lucide-react';
 
 export default function Home() {
   const { products, settings, isLoading } = useProducts();
+  const { itemCount: cartCount } = useCart();
+  const { count: favoritesCount } = useFavorites();
+  const [cartOpen, setCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -76,10 +82,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[color:var(--bg-primary)] pt-16">
-      <Header 
+      <Header
         storeName={settings.storeName}
         whatsappNumber={settings.whatsappNumber}
         storeIcon={settings.storeIcon}
+        favoritesCount={favoritesCount}
+        cartCount={cartCount}
+        onCartClick={() => setCartOpen(true)}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -298,10 +307,12 @@ export default function Home() {
         onClose={() => setSelectedProduct(null)} 
       />
 
-      <Footer 
+      <Footer
         storeName={settings.storeName}
         whatsappNumber={settings.whatsappNumber}
       />
+
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }
